@@ -111,6 +111,22 @@ app.put('/api/users/:id/rank', async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'อัปเดตยศไม่สำเร็จ' }); }
 });
 
+app.post('/api/update-profile', async (req, res) => {
+  if (!MONGO_URL || mongoose.connection.readyState !== 1) return res.status(503).json({ error: 'MongoDB ยังไม่ได้เชื่อมต่อ' });
+  const { userId, displayName, avatarUrl } = req.body || {};
+  if (!userId) return res.status(400).json({ error: 'ต้องมี userId' });
+  try {
+    const user = await User.findById(userId).exec();
+    if (!user) return res.status(404).json({ error: 'ไม่พบผู้ใช้' });
+    if (displayName !== undefined && String(displayName).trim() !== '') user.displayName = String(displayName).trim();
+    if (avatarUrl !== undefined) user.avatarUrl = avatarUrl;
+    await user.save();
+    res.json({ user: publicUserRow(user) });
+  } catch (err) {
+    res.status(500).json({ error: 'อัปเดตไม่สำเร็จ' });
+  }
+});
+
 app.get('/api/users/search/:email', async (req, res) => {
   const adminId = req.headers['x-admin-id'];
   if (!adminId) return res.status(403).json({ error: 'ต้องเป็น admin' });
@@ -124,7 +140,7 @@ app.get('/api/users/search/:email', async (req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  if (err && (err.type === 'entity.too.large' || err.status === 413)) return res.status(413).json({ error: 'ไฟล์ใหญ่เกินไป' });
+  if (err && (err.type === 'entity.too.large' || err.status === 413)) return res.status(413).json({ error: 'ไฟล์ใหญ่เกิน' });
   res.status(500).json({ error: 'เกิดข้อผิดพลาดในเซิร์ฟเวอร์' });
 });
 
@@ -140,7 +156,6 @@ const C = {
   SKIP: 'skip', ATTACK: 'attack', NOPE: 'nope', FAVOR: 'favor',
   TACO: 'taco_cat', POTATO: 'hairy_potato_cat',
   BEARD: 'beard_cat', RAINBOW: 'rainbow_cat', WATERMELON: 'cattermelon',
-  // ✅ FIX: เพิ่มการ์ดใหม่ทั้ง 6 ตัว
   ALTER_FUTURE: 'alter_the_future',
   CLAIRVOYANCE: 'clairvoyance',
   CLONE: 'clone',
@@ -149,7 +164,6 @@ const C = {
   REVERSE: 'reverse',
 };
 
-// ✅ FIX: เพิ่มการ์ดใหม่ใน CARD_INFO
 const CARD_INFO = {
   exploding_kitten: { emoji: '💥', name: 'Exploding Kitten', color: '#ef4444', desc: 'จั่วใบนี้แล้วไม่มี Defuse = ตายทันที!' },
   defuse:           { emoji: '🛡️', name: 'Defuse', color: '#22c55e', desc: 'ป้องกันการระเบิด แล้วใส่ Exploding Kitten คืนกอง' },
@@ -164,7 +178,6 @@ const CARD_INFO = {
   beard_cat:        { emoji: '🧔', name: 'Beard Cat', color: '#78716c', desc: 'ไพ่แมว — ใช้คู่ขโมยไพ่สุ่ม, 3 ใบ = ขโมยไพ่ที่ต้องการ' },
   rainbow_cat:      { emoji: '🌈', name: 'Rainbow Cat', color: '#a855f7', desc: 'ไพ่แมว — ใช้คู่ขโมยไพ่สุ่ม, 3 ใบ = ขโมยไพ่ที่ต้องการ' },
   cattermelon:      { emoji: '🍉', name: 'Cattermelon', color: '#4ade80', desc: 'ไพ่แมว — ใช้คู่ขโมยไพ่สุ่ม, 3 ใบ = ขโมยไพ่ที่ต้องการ' },
-  // ✅ FIX: การ์ดใหม่
   alter_the_future: { emoji: '👁️', name: 'Alter the Future', color: '#8b5cf6', desc: 'ดูไพ่ 3 ใบบนสุดแล้วเรียงลำดับใหม่ (เป็นความลับ)' },
   clairvoyance:     { emoji: '🔮', name: 'Clairvoyance', color: '#06b6d4', desc: 'เล่นหลัง Defuse — รู้ว่า Exploding Kitten ถูกใส่ที่ไหน' },
   clone:            { emoji: '📋', name: 'Clone', color: '#6366f1', desc: 'คัดลอกการ์ดใต้ใบนี้แล้วใช้กฎของมัน' },
@@ -175,7 +188,6 @@ const CARD_INFO = {
 
 const CAT_CARDS = [C.TACO, C.POTATO, C.BEARD, C.RAINBOW, C.WATERMELON];
 
-// ✅ FIX: การ์ดที่สามารถถูก Nope ได้ (ไม่รวม cat card combos ซึ่ง handle แยก)
 const NOPEABLE_TYPES = [
   C.SEE_FUTURE, C.SHUFFLE, C.SKIP, C.ATTACK, C.FAVOR,
   C.ALTER_FUTURE, C.CLAIRVOYANCE, C.CLONE, C.DIG_DEEPER, C.DRAW_BOTTOM, C.REVERSE,
@@ -193,12 +205,10 @@ function shuffleArr(arr) {
 
 let globalCardId = 1;
 
-// ✅ FIX: เพิ่ม CARD_VARIANTS ของการ์ดใหม่ (1 variant = ไฟล์เดียว)
 const CARD_VARIANTS = {
   exploding_kitten: 3, defuse: 3, see_the_future: 3, shuffle: 3,
   skip: 3, attack: 3, nope: 3, favor: 3,
   taco_cat: 3, hairy_potato_cat: 3, beard_cat: 3, rainbow_cat: 3, cattermelon: 3,
-  // การ์ดใหม่ — มีไฟล์เดียว (1 variant)
   alter_the_future: 1, clairvoyance: 1, clone: 1,
   dig_deeper: 1, draw_from_bottom: 1, reverse: 1,
 };
@@ -210,25 +220,21 @@ function makeCard(type) {
   return card;
 }
 
-// ✅ FIX: เพิ่มการ์ดใหม่ใน DEFAULT_CARD_COUNTS
 const DEFAULT_CARD_COUNTS = {
   [C.SEE_FUTURE]: 5,  [C.SHUFFLE]: 4,    [C.SKIP]: 4,
   [C.ATTACK]: 4,      [C.NOPE]: 5,       [C.FAVOR]: 4,
   [C.TACO]: 4,        [C.POTATO]: 4,     [C.BEARD]: 4,
   [C.RAINBOW]: 4,     [C.WATERMELON]: 4,
-  // การ์ดใหม่
   [C.ALTER_FUTURE]: 3, [C.CLAIRVOYANCE]: 3, [C.CLONE]: 3,
   [C.DIG_DEEPER]: 3,  [C.DRAW_BOTTOM]: 3,  [C.REVERSE]: 3,
 };
 
-// ✅ FIX: list of valid card types ที่ set-card-counts ยอมรับได้
 const VALID_CARD_TYPES = new Set(Object.keys(DEFAULT_CARD_COUNTS));
 
 function buildDeck(cardCounts) {
   const counts = cardCounts || DEFAULT_CARD_COUNTS;
   const deck = [];
   Object.entries(counts).forEach(([type, n]) => {
-    // ✅ FIX: ข้าม type ที่ไม่รู้จักหรือ n <= 0
     if (!VALID_CARD_TYPES.has(type) || !CARD_INFO[type]) return;
     const count = Math.max(0, Math.min(20, Number(n) || 0));
     for (let i = 0; i < count; i++) deck.push(makeCard(type));
@@ -240,10 +246,8 @@ function initGame(room) {
   const players = room.players;
   let deck = buildDeck(room.cardCounts || null);
   room.hands = {};
-  // ✅ FIX: reset turn direction สำหรับ Reverse card
-  room.turnDirection = 1; // 1 = ปกติ, -1 = ย้อน
+  room.turnDirection = 1;
 
-  // แจก Defuse 1 ใบ + ไพ่ 7 ใบ ให้ทุกคน
   players.forEach(pid => {
     room.hands[pid] = [makeCard(C.DEFUSE)];
     for (let i = 0; i < 7; i++) {
@@ -251,8 +255,11 @@ function initGame(room) {
     }
   });
 
-  // ใส่ Exploding Kittens = จำนวนผู้เล่น - 1
-  for (let i = 0; i < players.length - 1; i++) deck.push(makeCard(C.EXPLODING));
+  const explodingKittens = [];
+  for (let i = 0; i < players.length - 1; i++) {
+    explodingKittens.push(makeCard(C.EXPLODING));
+  }
+  for (const ek of explodingKittens) deck.push(ek);
 
   room.deck = shuffleArr(deck);
   room.discardPile = [];
@@ -265,8 +272,9 @@ function initGame(room) {
   room.pendingCatAction = null;
   room.pendingSteal3 = null;
   room.pendingDiscard5 = null;
-  room.pendingClairvoyanceFor = null; // ✅ NEW: รอ clairvoyance หลัง defuse
-  room.pendingDigDeeper = null;       // ✅ NEW: รอ dig deeper choice
+  room.pendingClairvoyanceFor = null;
+  room.pendingDigDeeper = null;
+  room.pendingAlterFuture = null;
   room.winner = null;
   room.lastAction = 'เกมเริ่มแล้ว! ขอให้โชคดี 🍀';
   room.gameState = 'playing';
@@ -285,7 +293,6 @@ function advanceTurn(room) {
     room.attackTurns--;
   } else {
     room.attackTurns = 1;
-    // ✅ FIX: รองรับ turnDirection สำหรับ Reverse
     const dir = room.turnDirection || 1;
     const len = room.alivePlayers.length;
     room.currentPlayerIndex = ((room.currentPlayerIndex + dir) % len + len) % len;
@@ -331,7 +338,25 @@ function broadcastGameState(room, io) {
   });
 }
 
-// ✅ FIX: resolveCardAction เพิ่ม logic การ์ดใหม่ทั้ง 6 ตัว
+function reinsertExplodingKitten(room, pos) {
+  let ekIdx = -1;
+  for (let i = room.discardPile.length - 1; i >= 0; i--) {
+    if (room.discardPile[i].type === C.EXPLODING) {
+      ekIdx = i;
+      break;
+    }
+  }
+  let ekCard;
+  if (ekIdx !== -1) {
+    ekCard = room.discardPile.splice(ekIdx, 1)[0];
+  } else {
+    ekCard = makeCard(C.EXPLODING);
+  }
+  const safePos = Math.min(Math.max(0, pos), room.deck.length);
+  room.deck.splice(safePos, 0, ekCard);
+  return safePos;
+}
+
 function resolveCardAction(room, io, roomId, action) {
   const { type, playerId, playerName, targetPlayerId, cards } = action;
 
@@ -358,17 +383,15 @@ function resolveCardAction(room, io, roomId, action) {
       break;
     }
 
+    // FIX #2: Attack turns — คำนวณ attackTurns อย่างชัดเจนไม่ reset กลางคัน
     case C.ATTACK: {
-      // ✅ FIX Attack logic: คนถัดไปเล่น 2 เทิร์น (ถ้าถูก attack ซ้อน = บวกรวม)
       const nextIdx = getNextPlayerIndex(room);
-      const currentTurns = room.attackTurns;
-      // advance ไปคนถัดไปทันที
-      room.attackTurns = 1;
+      const prevTurns = room.attackTurns;
+      // ถ้าคนปัจจุบันถูก attack อยู่ (prevTurns > 1) ให้สะสมเทิร์น
+      // ถ้าไม่ได้ถูก attack ให้ next player เล่น 2 เทิร์น
+      const newAttackTurns = prevTurns > 1 ? prevTurns + 2 : 2;
       room.currentPlayerIndex = nextIdx;
-      // กำหนด attack turns ให้คนถัดไป
-      room.attackTurns = (getCurrentPlayer(room) === room.alivePlayers[nextIdx] && currentTurns > 1)
-        ? currentTurns + 2
-        : 2;
+      room.attackTurns = newAttackTurns;
       room.lastAction = `⚔️ ${playerName} โจมตี! คนถัดไปต้องเล่น ${room.attackTurns} เทิร์น`;
       io.to(roomId).emit('attacked', { playerName, attackTurns: room.attackTurns });
       break;
@@ -387,7 +410,6 @@ function resolveCardAction(room, io, roomId, action) {
       break;
     }
 
-    // ✅ NEW: Alter the Future — ดูและเรียงลำดับ 3 ใบบนสุด
     case C.ALTER_FUTURE: {
       const top3 = room.deck.slice(0, 3);
       room.lastAction = `👁️ ${playerName} ใช้ Alter the Future`;
@@ -395,12 +417,10 @@ function resolveCardAction(room, io, roomId, action) {
       io.to(playerId).emit('alter-future-choice', {
         playerId, playerName, cards: top3, cardInfoMap: CARD_INFO
       });
-      // แจ้งคนอื่นว่ากำลังเรียง
       io.to(roomId).emit('log-action', { msg: room.lastAction });
       break;
     }
 
-    // ✅ NEW: Clairvoyance — บอกตำแหน่ง exploding kitten ที่เพิ่งถูกใส่
     case C.CLAIRVOYANCE: {
       const ekIdx = room.deck.findIndex(c => c.type === C.EXPLODING);
       room.lastAction = `🔮 ${playerName} ใช้ Clairvoyance`;
@@ -411,40 +431,39 @@ function resolveCardAction(room, io, roomId, action) {
       break;
     }
 
-    // ✅ NEW: Clone — คัดลอกการ์ดใต้ใบ clone แล้วใช้ effect ของมัน
     case C.CLONE: {
-      // หาการ์ดที่อยู่ "ใต้" clone ในกองทิ้ง (ใบที่เพิ่งถูกใส่ก่อน clone)
-      // ถ้ากองทิ้งมีอย่างน้อย 2 ใบ = ใบที่ 2 จากบน
       const discardLen = room.discardPile.length;
       let cardToClone = null;
       if (discardLen >= 2) {
-        cardToClone = room.discardPile[discardLen - 2]; // ใบก่อนหน้า clone
+        cardToClone = room.discardPile[discardLen - 2];
       }
       if (cardToClone && CARD_INFO[cardToClone.type] && cardToClone.type !== C.EXPLODING && cardToClone.type !== C.DEFUSE && cardToClone.type !== C.CLONE) {
         room.lastAction = `📋 ${playerName} Clone → ${CARD_INFO[cardToClone.type].emoji} ${CARD_INFO[cardToClone.type].name}`;
         io.to(playerId).emit('clone-choice', {
           playerId, playerName, cardToClone, cardInfoMap: CARD_INFO
         });
-        // Execute clone effect immediately
+        const clonedCard = { ...cardToClone };
+        const cloneRoomId = roomId;
         setTimeout(() => {
-          resolveCardAction(room, io, roomId, {
-            type: cardToClone.type,
+          const r = rooms[cloneRoomId];
+          if (!r || r.gameState !== 'playing') return;
+          if (!r.alivePlayers.includes(playerId)) return;
+          resolveCardAction(r, io, cloneRoomId, {
+            type: clonedCard.type,
             playerId, playerName,
             targetPlayerId: action.targetPlayerId,
-            cards: [cardToClone]
+            cards: [clonedCard]
           });
-          io.to(roomId).emit('clone-card-applied', { cardInfo: CARD_INFO[cardToClone.type] });
-          broadcastGameState(room, io);
+          io.to(cloneRoomId).emit('clone-card-applied', { cardInfo: CARD_INFO[clonedCard.type] });
+          broadcastGameState(r, io);
         }, 1500);
       } else {
-        // ไม่มีการ์ดที่ clone ได้ = ไม่มีผล
         room.lastAction = `📋 ${playerName} Clone แต่ไม่มีการ์ดที่จะ clone`;
         io.to(roomId).emit('log-action', { msg: room.lastAction });
       }
       break;
     }
 
-    // ✅ NEW: Dig Deeper — จั่ว 2 ใบ เก็บ 1 คืน 1
     case C.DIG_DEEPER: {
       if (room.deck.length < 1) {
         room.lastAction = `🔍 ${playerName} ใช้ Dig Deeper แต่กองไพ่หมด`;
@@ -462,87 +481,26 @@ function resolveCardAction(room, io, roomId, action) {
       break;
     }
 
-    // ✅ NEW: Draw from the Bottom — ใช้ป้องกัน Attack (เล่นขณะถูก attack)
-    // เมื่อเล่นการ์ดนี้ขณะมี attackTurns > 1 = ลด 1 เทิร์น + จั่วจากล่าง
     case C.DRAW_BOTTOM: {
-      if (room.attackTurns > 1) {
-        // ป้องกัน attack: จั่วจากล่าง ลด 1 เทิร์น
-        const bottomCard = room.deck.length > 0 ? room.deck.pop() : null;
-        const drawsUsed = (action._drawsUsed || 0) + 1;
-        if (bottomCard) {
-          if (bottomCard.type === C.EXPLODING) {
-            // จั่วได้ Exploding จากล่าง!
-            const defuseIdx = (room.hands[playerId] || []).findIndex(c => c.type === C.DEFUSE);
-            if (defuseIdx !== -1) {
-              const defuseCard = room.hands[playerId].splice(defuseIdx, 1)[0];
-              room.discardPile.push(defuseCard);
-              room.pendingInsert = { playerId };
-              io.to(playerId).emit('drew-exploding-kitten', { playerId, playerName, hadDefuse: true, deckSize: room.deck.length });
-              socket.emit('choose-insert-position', { deckSize: room.deck.length });
-            } else {
-              room.alivePlayers = room.alivePlayers.filter(p => p !== playerId);
-              delete room.hands[playerId];
-              io.to(roomId).emit('player-exploded', { playerId, playerName });
-              checkWinCondition(room, io, roomId);
-            }
-          } else {
-            room.hands[playerId].push(bottomCard);
-          }
-        }
-        room.attackTurns--;
-        room.lastAction = `⬇️ ${playerName} ใช้ Draw from the Bottom ป้องกัน Attack`;
-        io.to(playerId).emit('draw-from-bottom-defense', {
-          playerId, playerName,
-          attackTurnsRemaining: room.attackTurns,
-          drawsUsed
-        });
-      } else {
-        // ไม่ได้ถูก attack — จั่วจากล่างปกติ (แล้วจบเทิร์น)
-        const bottomCard = room.deck.length > 0 ? room.deck.pop() : null;
-        if (bottomCard) {
-          if (bottomCard.type === C.EXPLODING) {
-            const defuseIdx = (room.hands[playerId] || []).findIndex(c => c.type === C.DEFUSE);
-            if (defuseIdx !== -1) {
-              const defuseCard = room.hands[playerId].splice(defuseIdx, 1)[0];
-              room.discardPile.push(defuseCard);
-              room.pendingInsert = { playerId };
-              io.to(playerId).emit('drew-exploding-kitten', { playerId, playerName, hadDefuse: true, deckSize: room.deck.length });
-            } else {
-              room.alivePlayers = room.alivePlayers.filter(p => p !== playerId);
-              delete room.hands[playerId];
-              io.to(roomId).emit('player-exploded', { playerId, playerName });
-              checkWinCondition(room, io, roomId);
-              break;
-            }
-          } else {
-            room.hands[playerId].push(bottomCard);
-          }
-        }
-        room.lastAction = `⬇️ ${playerName} ใช้ Draw from the Bottom`;
-        advanceTurn(room);
-      }
+      handleDrawFromBottom(room, io, roomId, playerId, playerName, action);
       break;
     }
 
-    // ✅ NEW: Reverse — ย้อนลำดับ (หรือ Skip ถ้า 2 ผู้เล่น)
     case C.REVERSE: {
       const twoPlayerMode = room.alivePlayers.length <= 2;
       if (twoPlayerMode) {
-        // 2 ผู้เล่น: ทำหน้าที่เป็น Skip
         room.lastAction = `🔄 ${playerName} Reverse (2 ผู้เล่น = Skip)`;
         advanceTurn(room);
       } else {
-        // มากกว่า 2 ผู้เล่น: ย้อนลำดับ
         room.turnDirection = (room.turnDirection || 1) * -1;
         room.lastAction = `🔄 ${playerName} ย้อนลำดับการเล่น`;
-        advanceTurn(room); // advance ไปคนถัดไปในทิศทางใหม่
+        advanceTurn(room);
       }
       io.to(roomId).emit('reverse-played', { playerName, twoPlayerMode });
       break;
     }
 
     default: {
-      // Cat cards
       if (CAT_CARDS.includes(type) && room.pendingCatAction) {
         const catAct = room.pendingCatAction;
         room.pendingCatAction = null;
@@ -561,7 +519,7 @@ function resolveCardAction(room, io, roomId, action) {
           io.to(playerId).emit('pick-card-type-to-steal', {
             targetId: catAct.targetId,
             targetName: room.playerNames[catAct.targetId],
-            cards: availableTypes, // ✅ FIX: ส่งเป็น 'cards' array (ตรงกับ client openSteal3Modal)
+            cards: availableTypes,
             cardInfoMap: CARD_INFO
           });
         } else if (catAct.mode === 'steal5') {
@@ -577,7 +535,72 @@ function resolveCardAction(room, io, roomId, action) {
   }
 }
 
-// ✅ NEW: helper ตรวจ win condition
+function handleDrawFromBottom(room, io, roomId, playerId, playerName, action) {
+  if (room.attackTurns > 1) {
+    const bottomCard = room.deck.length > 0 ? room.deck.pop() : null;
+    const drawsUsed = (action._drawsUsed || 0) + 1;
+    if (bottomCard) {
+      if (bottomCard.type === C.EXPLODING) {
+        const defuseIdx = (room.hands[playerId] || []).findIndex(c => c.type === C.DEFUSE);
+        if (defuseIdx !== -1) {
+          const defuseCard = room.hands[playerId].splice(defuseIdx, 1)[0];
+          room.discardPile.push(defuseCard);
+          room.discardPile.push(bottomCard);
+          room.pendingInsert = { playerId };
+          io.to(playerId).emit('drew-exploding-kitten', { playerId, playerName, hadDefuse: true, deckSize: room.deck.length });
+          io.to(playerId).emit('choose-insert-position', { deckSize: room.deck.length });
+          broadcastGameState(room, io);
+          return;
+        } else {
+          room.alivePlayers = room.alivePlayers.filter(p => p !== playerId);
+          delete room.hands[playerId];
+          io.to(roomId).emit('player-exploded', { playerId, playerName });
+          checkWinCondition(room, io, roomId);
+          broadcastGameState(room, io);
+          return;
+        }
+      } else {
+        room.hands[playerId].push(bottomCard);
+      }
+    }
+    room.attackTurns--;
+    room.lastAction = `⬇️ ${playerName} ใช้ Draw from the Bottom ป้องกัน Attack`;
+    io.to(playerId).emit('draw-from-bottom-defense', {
+      playerId, playerName,
+      attackTurnsRemaining: room.attackTurns,
+      drawsUsed
+    });
+  } else {
+    const bottomCard = room.deck.length > 0 ? room.deck.pop() : null;
+    if (bottomCard) {
+      if (bottomCard.type === C.EXPLODING) {
+        const defuseIdx = (room.hands[playerId] || []).findIndex(c => c.type === C.DEFUSE);
+        if (defuseIdx !== -1) {
+          const defuseCard = room.hands[playerId].splice(defuseIdx, 1)[0];
+          room.discardPile.push(defuseCard);
+          room.discardPile.push(bottomCard);
+          room.pendingInsert = { playerId };
+          io.to(playerId).emit('drew-exploding-kitten', { playerId, playerName, hadDefuse: true, deckSize: room.deck.length });
+          io.to(playerId).emit('choose-insert-position', { deckSize: room.deck.length });
+          broadcastGameState(room, io);
+          return;
+        } else {
+          room.alivePlayers = room.alivePlayers.filter(p => p !== playerId);
+          delete room.hands[playerId];
+          io.to(roomId).emit('player-exploded', { playerId, playerName });
+          checkWinCondition(room, io, roomId);
+          broadcastGameState(room, io);
+          return;
+        }
+      } else {
+        room.hands[playerId].push(bottomCard);
+      }
+    }
+    room.lastAction = `⬇️ ${playerName} ใช้ Draw from the Bottom`;
+    advanceTurn(room);
+  }
+}
+
 function checkWinCondition(room, io, roomId) {
   if (room.alivePlayers.length === 1) {
     room.gameState = 'ended';
@@ -609,7 +632,7 @@ io.on('connection', (socket) => {
         pendingCatAction: null, pendingSteal3: null, pendingDiscard5: null,
         pendingAlterFuture: null, pendingDigDeeper: null,
         winner: null, lastAction: '',
-        cardCounts: null, // ✅ เริ่มต้น null = ใช้ DEFAULT
+        cardCounts: null,
       };
     }
 
@@ -681,7 +704,6 @@ io.on('connection', (socket) => {
     if (mainType === C.EXPLODING) { socket.emit('game-error', { message: 'ไม่สามารถเล่น Exploding Kitten ได้' }); return; }
     if (mainType === C.DEFUSE && cards.length === 1) { socket.emit('game-error', { message: 'ไม่สามารถเล่น Defuse โดยตรงได้' }); return; }
 
-    // Cat card validation
     if (CAT_CARDS.includes(mainType)) {
       if (cards.length === 1) { socket.emit('game-error', { message: 'Cat Card ใบเดียวไม่มีผล' }); return; }
       if (cards.length === 2 && !types.every(t => t === mainType)) { socket.emit('game-error', { message: 'ต้องใช้ Cat Cards 2 ใบเหมือนกัน' }); return; }
@@ -693,7 +715,6 @@ io.on('connection', (socket) => {
       }
     }
 
-    // ลบไพ่จากมือและใส่กองทิ้ง
     for (const cid of cardIds) {
       const idx = hand.findIndex(c => c.id === cid);
       if (idx !== -1) hand.splice(idx, 1);
@@ -703,7 +724,6 @@ io.on('connection', (socket) => {
     const playerName = room.playerNames[socket.id];
     const ci = CARD_INFO[mainType] || { emoji: '🃏', name: mainType };
 
-    // ตั้ง cat action
     if (CAT_CARDS.includes(mainType) && cards.length >= 2) {
       const mode = cards.length === 2 ? 'steal2' : cards.length === 3 ? 'steal3' : 'steal5';
       room.pendingCatAction = { mode, targetId: targetPlayerId || null };
@@ -733,11 +753,16 @@ io.on('connection', (socket) => {
         room.lastAction = `❌ ${act.playerName} ถูก Nope — ${ci.emoji} ${ci.name} ถูกยกเลิก`;
         room.pendingCatAction = null;
         io.to(socket.roomId).emit('action-noped', { playerName: act.playerName });
+        // FIX #6: เมื่อ Favor ถูก Nope ให้ปิด favorModal บน client ของผู้ถูก favor
+        if (act.type === C.FAVOR && act.targetPlayerId) {
+          io.to(act.targetPlayerId).emit('favor-noped');
+        }
       }
       broadcastGameState(room, io);
     }, 3000);
   });
 
+  // FIX #1: play-nope — ใช้ Nope card จริงจากมือผู้เล่น ไม่ makeCard ใหม่
   socket.on('play-nope', (data) => {
     const room = rooms[socket.roomId];
     if (!room || room.gameState !== 'playing') return;
@@ -751,8 +776,9 @@ io.on('connection', (socket) => {
     if (!hand) return;
     const idx = hand.findIndex(c => c.id === cardId && c.type === C.NOPE);
     if (idx === -1) { socket.emit('game-error', { message: 'คุณไม่มีไพ่ Nope' }); return; }
-    hand.splice(idx, 1);
-    room.discardPile.push({ id: globalCardId++, type: C.NOPE });
+    // FIX #1: ดึงการ์ดจริงจากมือและใส่ discard pile แทนการ makeCard ใหม่
+    const nopeCard = hand.splice(idx, 1)[0];
+    room.discardPile.push(nopeCard);
     room.pendingAction.noped = !room.pendingAction.noped;
     const pName = room.playerNames[socket.id];
     room.lastAction = `🚫 ${pName} ${room.pendingAction.noped ? 'Nope!' : 'Nope the Nope!'}`;
@@ -767,7 +793,6 @@ io.on('connection', (socket) => {
     if (room.pendingAction || room.pendingInsert || room.pendingFavor) {
       socket.emit('game-error', { message: 'รอ action ก่อนหน้าให้เสร็จก่อน' }); return;
     }
-    // ✅ FIX: ตรวจ pendingDigDeeper และ pendingAlterFuture ด้วย
     if (room.pendingDigDeeper || room.pendingAlterFuture) {
       socket.emit('game-error', { message: 'รอ action ก่อนหน้าให้เสร็จก่อน' }); return;
     }
@@ -784,6 +809,7 @@ io.on('connection', (socket) => {
       if (defuseIdx !== -1) {
         const defuseCard = room.hands[socket.id].splice(defuseIdx, 1)[0];
         room.discardPile.push(defuseCard);
+        room.discardPile.push(drawnCard);
         room.lastAction = `💥 ${playerName} จั่ว Exploding Kitten! แต่ใช้ 🛡️ Defuse รอดได้`;
         room.pendingInsert = { playerId: socket.id };
         io.to(socket.roomId).emit('drew-exploding-kitten', {
@@ -816,11 +842,11 @@ io.on('connection', (socket) => {
     const room = rooms[socket.roomId];
     if (!room || !room.pendingInsert || room.pendingInsert.playerId !== socket.id) return;
     const pos = Math.min(Math.max(0, data.position || 0), room.deck.length);
-    room.deck.splice(pos, 0, makeCard(C.EXPLODING));
+    const actualPos = reinsertExplodingKitten(room, pos);
     room.pendingInsert = null;
-    room.lastAction = `${room.playerNames[socket.id]} ใส่ 💥 Exploding Kitten คืนกองที่ตำแหน่ง ${pos + 1}`;
+    room.lastAction = `${room.playerNames[socket.id]} ใส่ 💥 Exploding Kitten คืนกองที่ตำแหน่ง ${actualPos + 1}`;
     io.to(socket.roomId).emit('exploding-kitten-inserted', {
-      playerName: room.playerNames[socket.id], position: pos, deckSize: room.deck.length
+      playerName: room.playerNames[socket.id], position: actualPos, deckSize: room.deck.length
     });
     advanceTurn(room);
     broadcastGameState(room, io);
@@ -847,10 +873,13 @@ io.on('connection', (socket) => {
     broadcastGameState(room, io);
   });
 
+  // FIX #2: steal-card-type — ใช้ targetId จาก pendingSteal3 ที่เซิร์ฟเวอร์เก็บไว้เท่านั้น
   socket.on('steal-card-type', (data) => {
     const room = rooms[socket.roomId];
     if (!room || !room.pendingSteal3 || room.pendingSteal3.requesterId !== socket.id) return;
-    const { cardType, targetId } = data;
+    const { cardType } = data;
+    // FIX: ใช้ targetId จาก server-side pendingSteal3 เท่านั้น ไม่รับจาก client
+    const targetId = room.pendingSteal3.targetId;
     const targetHand = room.hands[targetId] || [];
     const idx = targetHand.findIndex(c => c.type === cardType);
     if (idx === -1) {
@@ -890,21 +919,18 @@ io.on('connection', (socket) => {
     broadcastGameState(room, io);
   });
 
-  // ✅ NEW: Alter the Future result
   socket.on('alter-future-result', (data) => {
     const room = rooms[socket.roomId];
     if (!room || !room.pendingAlterFuture || room.pendingAlterFuture.playerId !== socket.id) return;
-    const { newOrder } = data; // array of card ids
+    const { newOrder } = data;
     if (!Array.isArray(newOrder) || newOrder.length === 0) {
       room.pendingAlterFuture = null;
       broadcastGameState(room, io);
       return;
     }
-    // reorder top cards ตาม newOrder
     const top = room.deck.slice(0, newOrder.length);
     const rest = room.deck.slice(newOrder.length);
     const reordered = newOrder.map(id => top.find(c => c.id === id)).filter(Boolean);
-    // ถ้าจำนวนไม่ครบ ใช้ original
     if (reordered.length === top.length) {
       room.deck = [...reordered, ...rest];
     }
@@ -915,7 +941,6 @@ io.on('connection', (socket) => {
     broadcastGameState(room, io);
   });
 
-  // ✅ NEW: Dig Deeper choice
   socket.on('dig-deeper-choice', (data) => {
     const room = rooms[socket.roomId];
     if (!room || !room.pendingDigDeeper || room.pendingDigDeeper.playerId !== socket.id) return;
@@ -924,7 +949,6 @@ io.on('connection', (socket) => {
 
     const keepIdx = drawnCards.findIndex(c => c.id === cardId);
     if (keepIdx === -1) {
-      // ไม่เจอ = เก็บทั้งหมด
       drawnCards.forEach(c => room.hands[socket.id].push(c));
       room.pendingDigDeeper = null;
       broadcastGameState(room, io);
@@ -935,13 +959,11 @@ io.on('connection', (socket) => {
     const returnCards = drawnCards.filter((_, i) => i !== keepIdx);
 
     if (returnToBottom) {
-      // เก็บ keepCard ไว้ คืน returnCards ลงล่างกอง
       room.hands[socket.id].push(keepCard);
-      returnCards.forEach(c => room.deck.push(c)); // ใส่ล่างกอง
+      returnCards.forEach(c => room.deck.push(c));
     } else {
-      // เก็บ keepCard คืน returnCards กลับบนกอง
       room.hands[socket.id].push(keepCard);
-      returnCards.forEach(c => room.deck.unshift(c)); // ใส่บนกอง
+      returnCards.forEach(c => room.deck.unshift(c));
     }
 
     room.pendingDigDeeper = null;
@@ -959,18 +981,16 @@ io.on('connection', (socket) => {
     broadcastGameState(room, io);
   });
 
-  // ✅ FIX: set-card-counts — validate types ก่อนบันทึก
   socket.on('set-card-counts', (data) => {
     const room = rooms[socket.roomId];
     if (!room || !canControlRoom(room, socket) || room.gameState !== 'lobby') return;
 
     if (!data.cardCounts) {
-      room.cardCounts = null; // reset เป็น default
+      room.cardCounts = null;
       socket.emit('card-counts-saved', { ok: true });
       return;
     }
 
-    // ✅ กรองเฉพาะ card type ที่ valid และ sanitize ค่า
     const validated = {};
     let hasAny = false;
     Object.entries(data.cardCounts).forEach(([type, n]) => {
@@ -1030,6 +1050,46 @@ function handleLeave(socket, isDisconnect = false) {
   ['playerNames','scores','playerAvatars','playerRanks','userIds','hands'].forEach(k => {
     if (room[k]) delete room[k][socket.id];
   });
+
+  if (room.pendingFavor && (
+    room.pendingFavor.targetId === socket.id ||
+    room.pendingFavor.requesterId === socket.id
+  )) {
+    room.pendingFavor = null;
+  }
+  if (room.pendingInsert && room.pendingInsert.playerId === socket.id) {
+    room.pendingInsert = null;
+    const ekIdx = room.discardPile.findIndex(c => c.type === C.EXPLODING);
+    if (ekIdx !== -1) {
+      const ek = room.discardPile.splice(ekIdx, 1)[0];
+      const randPos = Math.floor(Math.random() * (room.deck.length + 1));
+      room.deck.splice(randPos, 0, ek);
+    }
+  }
+  if (room.pendingSteal3 && (
+    room.pendingSteal3.requesterId === socket.id ||
+    room.pendingSteal3.targetId === socket.id
+  )) {
+    room.pendingSteal3 = null;
+  }
+  if (room.pendingDiscard5 && room.pendingDiscard5.requesterId === socket.id) {
+    room.pendingDiscard5 = null;
+  }
+  if (room.pendingAlterFuture && room.pendingAlterFuture.playerId === socket.id) {
+    room.pendingAlterFuture = null;
+  }
+  if (room.pendingDigDeeper && room.pendingDigDeeper.playerId === socket.id) {
+    if (room.pendingDigDeeper.drawnCards) {
+      room.pendingDigDeeper.drawnCards.forEach(c => room.deck.unshift(c));
+    }
+    room.pendingDigDeeper = null;
+  }
+  if (room.pendingCatAction) {
+    const catAct = room.pendingCatAction;
+    if (catAct.targetId === socket.id) {
+      room.pendingCatAction = null;
+    }
+  }
 
   if (room.players.length === 0) {
     delete rooms[socket.roomId];
