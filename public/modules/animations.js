@@ -1,9 +1,13 @@
 /**
  * animations.js - ฟังก์ชันแอนิเมชั่นต่างๆ
+ * [UPDATED] ใช้ ICONS แทน emoji และ t() แทน hardcoded strings
+ *
+ * NOTE: animation particles (explode effect) ยังคงใช้ตัวอักษรรูปทรง (■ ● ▲)
+ * ไม่ใช่ emoji — เพราะเป็นการ์ดตกแบบ confetti/effect ไม่ใช่ UI icon
  */
 
 function showDrawCardAnimation(cardData, isMyCard) {
-  var ci = cardData ? CARD_INFO[cardData.type] : null;
+  var ci = cardData ? getCardInfo(cardData.type) : null;
   var drawPile = document.getElementById('drawPileArea');
   if (!drawPile) return;
 
@@ -31,15 +35,15 @@ function showDrawCardAnimation(cardData, isMyCard) {
         ? 'this.onerror=function(){this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'};this.src=\'' + jpg + '\''
         : 'this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'';
       flyCard.innerHTML = '<img src="' + png + '" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="' + onErr + '">' +
-        '<div style="width:100%;height:100%;display:none;align-items:center;justify-content:center;flex-direction:column;background:' + ci.color + '22;">' +
-        '<div style="font-size:3rem;">' + ci.emoji + '</div></div>';
+        '<div style="width:100%;height:100%;display:none;align-items:center;justify-content:center;flex-direction:column;background:' + ci.color + '22;gap:8px;">' +
+        '<div style="font-size:1.8rem;">' + (CARD_ICONS[cardData.type] || ICONS.card) + '</div></div>';
     } else {
       flyCard.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;background:' + ci.color + '22;gap:6px;">' +
-        '<div style="font-size:3rem;">' + ci.emoji + '</div>' +
-        '<div style="font-size:0.7rem;font-weight:800;color:white;font-family:Cinzel,serif;text-align:center;padding:0 4px;">' + ci.name + '</div></div>';
+        '<div style="font-size:1.8rem;">' + (CARD_ICONS[cardData.type] || ICONS.card) + '</div>' +
+        '<div style="font-size:0.7rem;font-weight:800;color:white;font-family:Kanit,sans-serif;text-align:center;padding:0 4px;">' + ci.name + '</div></div>';
     }
   } else {
-    flyCard.innerHTML = '<div style="width:100%;height:100%;background:linear-gradient(160deg,#8b1a1a,#c0392b,#7a1010);display:flex;align-items:center;justify-content:center;font-size:3rem;">💥</div>';
+    flyCard.innerHTML = '<div style="width:100%;height:100%;background:linear-gradient(160deg,#8b1a1a,#c0392b,#7a1010);display:flex;align-items:center;justify-content:center;font-size:1.8rem;">' + ICONS.explode + '</div>';
   }
 
   document.body.appendChild(flyCard);
@@ -76,9 +80,9 @@ function showDrawResultPopup(ci, cardData) {
       ? 'this.onerror=function(){this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'};this.src=\'' + jpg + '\''
       : 'this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'';
     imgHTML = '<img src="' + png + '" style="width:100%;height:100%;object-fit:cover;border-radius:12px;display:block;" onerror="' + onErr + '">' +
-      '<div style="width:100%;height:100%;display:none;align-items:center;justify-content:center;font-size:3rem;border-radius:12px;background:' + ci.color + '22;">' + ci.emoji + '</div>';
+      '<div style="width:100%;height:100%;display:none;align-items:center;justify-content:center;font-size:2rem;border-radius:12px;background:' + ci.color + '22;">' + (CARD_ICONS[cardData.type] || ICONS.card) + '</div>';
   } else {
-    imgHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:3.5rem;border-radius:12px;background:' + ci.color + '22;">' + ci.emoji + '</div>';
+    imgHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;border-radius:12px;background:' + ci.color + '22;">' + (CARD_ICONS[cardData && cardData.type] || ICONS.card) + '</div>';
   }
 
   var popup = document.createElement('div');
@@ -88,10 +92,12 @@ function showDrawResultPopup(ci, cardData) {
     'opacity:0;transition:all 0.35s cubic-bezier(0.34,1.56,0.64,1);pointer-events:none;';
 
   popup.innerHTML =
-    '<div style="font-size:0.72rem;font-weight:700;color:rgba(255,255,255,0.6);letter-spacing:0.15em;text-transform:uppercase;background:rgba(0,0,0,0.6);padding:4px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.1);">🎴 คุณได้ไพ่!</div>' +
+    '<div style="font-size:0.72rem;font-weight:700;color:rgba(255,255,255,0.6);letter-spacing:0.15em;text-transform:uppercase;background:rgba(0,0,0,0.6);padding:4px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.1);">' +
+      ICONS.draw + ' ' + t('anim.gotCard') +
+    '</div>' +
     '<div style="width:90px;height:130px;border-radius:12px;overflow:hidden;box-shadow:0 16px 48px rgba(0,0,0,0.7),0 0 24px ' + ci.color + '66;border:2px solid ' + ci.color + ';">' + imgHTML + '</div>' +
     '<div style="background:rgba(5,15,10,0.95);border:1px solid ' + ci.color + '66;border-radius:20px;padding:8px 20px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.5);">' +
-      '<div style="font-size:1.1rem;font-weight:900;color:' + ci.color + ';font-family:Cinzel,serif;">' + ci.emoji + ' ' + ci.name + '</div>' +
+      '<div style="font-size:1.1rem;font-weight:900;color:' + ci.color + ';font-family:Kanit,sans-serif;">' + (CARD_ICONS[cardData && cardData.type] || ICONS.card) + ' ' + ci.name + '</div>' +
       '<div style="font-size:0.72rem;color:rgba(255,255,255,0.5);margin-top:3px;">' + ci.desc + '</div>' +
     '</div>';
 
@@ -119,7 +125,7 @@ function showStealAnimation(fromPlayerId, stolenCard) {
   var startX = fromRect.left + fromRect.width / 2;
   var startY = fromRect.top + fromRect.height / 2;
 
-  var ci = stolenCard ? CARD_INFO[stolenCard.type] : null;
+  var ci = stolenCard ? getCardInfo(stolenCard.type) : null;
   var imgObj = stolenCard ? getCardImg(stolenCard) : null;
   var png = imgObj ? (imgObj.png || imgObj) : null;
   var jpg = imgObj ? (imgObj.jpg || null) : null;
@@ -141,11 +147,11 @@ function showStealAnimation(fromPlayerId, stolenCard) {
       ? 'this.onerror=function(){this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'};this.src=\'' + jpg + '\''
       : 'this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'';
     innerContent = '<img src="' + png + '" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="' + onErr + '">' +
-      '<div style="width:100%;height:100%;display:none;align-items:center;justify-content:center;background:' + ci.color + '22;font-size:2.5rem;">' + ci.emoji + '</div>';
+      '<div style="width:100%;height:100%;display:none;align-items:center;justify-content:center;background:' + ci.color + '22;font-size:2rem;">' + (CARD_ICONS[stolenCard.type] || ICONS.card) + '</div>';
   } else if (ci) {
-    innerContent = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:' + ci.color + '22;font-size:2.5rem;">' + ci.emoji + '</div>';
+    innerContent = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:' + ci.color + '22;font-size:2rem;">' + (CARD_ICONS[stolenCard.type] || ICONS.card) + '</div>';
   } else {
-    innerContent = '<div style="width:100%;height:100%;background:linear-gradient(135deg,#7c3aed,#4c1d95);display:flex;align-items:center;justify-content:center;font-size:2.5rem;">🐱</div>';
+    innerContent = '<div style="width:100%;height:100%;background:linear-gradient(135deg,#7c3aed,#4c1d95);display:flex;align-items:center;justify-content:center;font-size:2rem;">' + ICONS.cat + '</div>';
   }
   flyCard.innerHTML = innerContent;
   document.body.appendChild(flyCard);
@@ -186,27 +192,45 @@ function showStealResultPopup(ci, fromPlayerId, stolenCard) {
       ? 'this.onerror=function(){this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'};this.src=\'' + jpg + '\''
       : 'this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'';
     imgHTML = '<img src="' + png + '" style="width:100%;height:100%;object-fit:cover;border-radius:10px;display:block;" onerror="' + onErr + '">' +
-      '<div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:3rem;border-radius:10px;background:' + ci.color + '22;">' + ci.emoji + '</div>';
+      '<div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:2rem;border-radius:10px;background:' + ci.color + '22;">' + (CARD_ICONS[stolenCard && stolenCard.type] || ICONS.card) + '</div>';
   } else {
-    imgHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:3rem;border-radius:10px;background:' + ci.color + '22;">' + ci.emoji + '</div>';
+    imgHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;border-radius:10px;background:' + ci.color + '22;">' + (CARD_ICONS[stolenCard && stolenCard.type] || ICONS.card) + '</div>';
   }
 
   var popup = document.createElement('div');
   popup.id = 'stealResultPopup';
-  popup.style.cssText = 'position:fixed;bottom:180px;left:50%;transform:translateX(-50%) scale(0.8);z-index:9993;' +
+  var isMobile = window.innerWidth <= 520;
+  popup.style.cssText = 'position:fixed;bottom:' + (isMobile ? '140px' : '180px') + ';left:50%;transform:translateX(-50%) scale(0.8);z-index:9993;' +
     'display:flex;flex-direction:column;align-items:center;gap:8px;' +
-    'opacity:0;transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);pointer-events:none;';
+    'opacity:0;transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);pointer-events:none;' +
+    'max-width:min(92vw, 520px);width:min(92vw, 520px);';
 
   popup.innerHTML =
-    '<div style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);border-radius:20px;padding:4px 16px;font-size:0.72rem;font-weight:700;color:#f59e0b;letter-spacing:0.1em;">🐱 ขโมยสำเร็จ!</div>' +
-    '<div style="display:flex;align-items:center;gap:14px;background:rgba(5,15,10,0.95);border:1px solid rgba(245,158,11,0.3);border-radius:16px;padding:14px 20px;box-shadow:0 8px 32px rgba(0,0,0,0.6);">' +
-      '<div style="width:72px;height:103px;border-radius:10px;overflow:hidden;flex-shrink:0;box-shadow:0 6px 20px rgba(0,0,0,0.5);border:2px solid ' + ci.color + ';">' + imgHTML + '</div>' +
-      '<div>' +
-        '<div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-bottom:4px;">จาก <strong style="color:#f59e0b;">' + escHtml(fromName) + '</strong></div>' +
-        '<div style="font-size:1rem;font-weight:900;color:' + ci.color + ';font-family:Cinzel,serif;">' + ci.emoji + ' ' + ci.name + '</div>' +
-        '<div style="font-size:0.68rem;color:rgba(255,255,255,0.4);margin-top:4px;max-width:140px;">' + ci.desc + '</div>' +
+    '<div style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);border-radius:20px;padding:4px 16px;font-size:0.72rem;font-weight:700;color:#f59e0b;letter-spacing:0.1em;">' +
+      ICONS.steal + ' ' + t('anim.stealOk') +
+    '</div>' +
+    '<div style="display:flex;align-items:center;gap:14px;background:rgba(5,15,10,0.95);border:1px solid rgba(245,158,11,0.3);border-radius:16px;padding:' + (isMobile ? '14px 14px' : '14px 20px') + ';box-shadow:0 8px 32px rgba(0,0,0,0.6);"' +
+      '>' +
+      '<div style="width:' + (isMobile ? '96px' : '72px') + ';height:' + (isMobile ? '138px' : '103px') + ';border-radius:10px;overflow:hidden;flex-shrink:0;box-shadow:0 6px 20px rgba(0,0,0,0.5);border:2px solid ' + ci.color + ';">' + imgHTML + '</div>' +
+      '<div style="min-width:0;">' +
+        '<div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-bottom:4px;">' + t('anim.from') + ' <strong style="color:#f59e0b;">' + escHtml(fromName) + '</strong></div>' +
+        '<div style="font-size:' + (isMobile ? '1.05rem' : '1rem') + ';font-weight:900;color:' + ci.color + ';font-family:Kanit,sans-serif;">' + (CARD_ICONS[stolenCard && stolenCard.type] || ICONS.card) + ' ' + ci.name + '</div>' +
+        '<div style="font-size:' + (isMobile ? '0.74rem' : '0.68rem') + ';color:rgba(255,255,255,0.4);margin-top:4px;max-width:' + (isMobile ? '240px' : '140px') + ';">' + ci.desc + '</div>' +
       '</div>' +
     '</div>';
+
+  if (isMobile) {
+    var cardWrap = popup.querySelector('div[style*="border:2px solid"]');
+    var contentWrap = cardWrap && cardWrap.parentNode;
+    if (contentWrap && contentWrap.style) {
+      contentWrap.style.flexDirection = 'column';
+      contentWrap.style.alignItems = 'stretch';
+      contentWrap.style.gap = '10px';
+    }
+    if (cardWrap && cardWrap.style) {
+      cardWrap.style.alignSelf = 'center';
+    }
+  }
 
   document.body.appendChild(popup);
 
@@ -236,14 +260,14 @@ function showTurnChangeAnimation(isMe, playerName) {
     el.innerHTML =
       '<div class="turn-change-spotlight"></div>' +
       '<div class="turn-change-label my-turn-label">' +
-        '<div style="font-size:2.5rem;margin-bottom:8px;animation:bounce-icon 0.6s ease infinite;">🎯</div>' +
-        '<div style="font-family:Cinzel,serif;font-size:1.4rem;font-weight:900;color:#f0c060;text-shadow:0 0 20px rgba(240,192,96,0.8);">เทิร์นของคุณ!</div>' +
+        '<div style="font-size:2rem;margin-bottom:8px;animation:bounce-icon 0.6s ease infinite;">' + ICONS.myTurn + '</div>' +
+        '<div style="font-family:Kanit,sans-serif;font-size:1.4rem;font-weight:900;color:#f0c060;text-shadow:0 0 20px rgba(240,192,96,0.8);">' + t('anim.yourTurn') + '</div>' +
       '</div>';
   } else {
     el.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:9988;pointer-events:none;';
     el.innerHTML =
       '<div class="turn-change-pill">' +
-        '🎲 เทิร์นของ <strong>' + escHtml(playerName || '?') + '</strong>' +
+        ICONS.dice + ' ' + t('anim.theirTurn', { name: '<strong>' + escHtml(playerName || '?') + '</strong>' }) +
       '</div>';
   }
 
@@ -262,22 +286,25 @@ function showExplodeAnimation(playerName, isMe) {
   var container = document.createElement('div');
   container.style.cssText = 'position:fixed;inset:0;z-index:9995;pointer-events:none;overflow:hidden;';
 
-  var particles = ['💥','🔥','💨','✨','⚡','🌟','💫'];
+  // particle shapes (ตัวอักษรรูปทรง ไม่ใช่ emoji) + icon fallback
+  var particles = ['■','◆','●','▲','★','✦','✸'];
+  var colors = ['#ef4444','#f97316','#eab308','#fff','#fca5a5'];
   var html = '';
   for (var i = 0; i < 24; i++) {
     var angle = (i / 24) * 360;
     var dist = 80 + Math.random() * 180;
     var delay = Math.random() * 0.3;
-    var size = 1.5 + Math.random() * 2;
+    var size = 1.2 + Math.random() * 1.8;
     var dx = Math.cos(angle * Math.PI/180) * dist;
     var dy = Math.sin(angle * Math.PI/180) * dist;
-    var emoji = particles[Math.floor(Math.random() * particles.length)];
-    html += '<div style="position:absolute;left:50%;top:50%;' +
+    var shape = particles[Math.floor(Math.random() * particles.length)];
+    var color = colors[Math.floor(Math.random() * colors.length)];
+    html += '<div style="position:absolute;left:50%;top:50%;color:' + color + ';' +
       'font-size:' + size + 'rem;' +
       'transform:translate(-50%,-50%);' +
       'animation:explode-particle 0.8s cubic-bezier(0.2,0,0.8,1) ' + delay + 's forwards;' +
       '--dx:' + dx + 'px;--dy:' + dy + 'px;' +
-      '">' + emoji + '</div>';
+      '">' + shape + '</div>';
   }
 
   html += '<div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,rgba(255,100,0,0.7) 0%,rgba(255,0,0,0.4) 30%,transparent 70%);animation:explode-flash 0.5s ease forwards;"></div>';
@@ -288,9 +315,9 @@ function showExplodeAnimation(playerName, isMe) {
   var textEl = document.createElement('div');
   textEl.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.5);z-index:9996;pointer-events:none;text-align:center;transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);opacity:0;';
   textEl.innerHTML =
-    '<div style="font-size:5rem;animation:explode-emoji-pulse 0.4s ease;">💥</div>' +
-    '<div style="font-family:Cinzel,serif;font-size:1.4rem;font-weight:900;color:#ff4040;text-shadow:0 0 30px rgba(255,64,64,0.9);margin-top:8px;">' +
-      (isMe ? 'คุณระเบิดแล้ว! 💀' : escHtml(playerName) + ' ระเบิด! 💀') +
+    '<div style="font-size:3.5rem;animation:explode-emoji-pulse 0.4s ease;">' + ICONS.explode + '</div>' +
+    '<div style="font-family:Kanit,sans-serif;font-size:1.4rem;font-weight:900;color:#ff4040;text-shadow:0 0 30px rgba(255,64,64,0.9);margin-top:8px;">' +
+      (isMe ? t('anim.youExplode') : t('anim.theyExplode', { name: escHtml(playerName) })) +
     '</div>';
   document.body.appendChild(textEl);
 
@@ -316,11 +343,11 @@ function showAttackAnimation(playerName, targetName) {
   el.innerHTML =
     '<div class="attack-flash-bg"></div>' +
     '<div class="attack-content">' +
-      '<div class="attack-lightning">⚔️</div>' +
+      '<div class="attack-lightning" style="font-size:2.5rem;">' + ICONS.attack + '</div>' +
       '<div class="attack-text">' +
         '<div style="font-size:0.8rem;color:rgba(255,200,100,0.7);margin-bottom:6px;">' + escHtml(playerName) + ' โจมตี!</div>' +
-        '<div style="font-family:Cinzel,serif;font-size:1.5rem;font-weight:900;color:#ff8c00;">ATTACK!</div>' +
-        (targetName ? '<div style="font-size:0.75rem;color:rgba(255,180,80,0.8);margin-top:4px;">▶ ' + escHtml(targetName) + ' เล่น 2 เทิร์น</div>' : '') +
+        '<div style="font-family:Kanit,sans-serif;font-size:1.5rem;font-weight:900;color:#ff8c00;">ATTACK!</div>' +
+        (targetName ? '<div style="font-size:0.75rem;color:rgba(255,180,80,0.8);margin-top:4px;"><i class="fas fa-play" style="font-size:0.6rem;"></i> ' + escHtml(targetName) + ' เล่น 2 เทิร์น</div>' : '') +
       '</div>' +
     '</div>';
 
@@ -339,10 +366,10 @@ function showSkipAnimation(playerName, isMe) {
 
   el.innerHTML =
     '<div class="skip-pill">' +
-      '<span style="font-size:1.3rem;">⏭️</span>' +
+      '<span style="font-size:1.2rem;">' + ICONS.skip + '</span>' +
       '<div>' +
-        '<div style="font-family:Cinzel,serif;font-weight:800;font-size:0.9rem;">' + (isMe ? 'คุณ SKIP!' : escHtml(playerName) + ' SKIP!') + '</div>' +
-        '<div style="font-size:0.68rem;color:rgba(255,255,255,0.5);">ข้ามเทิร์น ไม่ต้องจั่วไพ่</div>' +
+        '<div style="font-family:Kanit,sans-serif;font-weight:800;font-size:0.9rem;">' + (isMe ? t('anim.youSkip') : t('anim.theySkip', { name: escHtml(playerName) })) + '</div>' +
+        '<div style="font-size:0.68rem;color:rgba(255,255,255,0.5);">' + t('anim.skipSub') + '</div>' +
       '</div>' +
     '</div>';
 
@@ -382,7 +409,7 @@ function showConfettiAnimation() {
   container.style.cssText = 'position:fixed;inset:0;z-index:9997;pointer-events:none;overflow:hidden;';
 
   var colors = ['#f0c060','#ff6b6b','#4ade80','#60a5fa','#f472b6','#a78bfa','#fb923c'];
-  var shapes = ['■','●','▲','★','◆'];
+  var shapes = ['■','●','▲','★','◆'];  // ตัวอักษรรูปทรง ไม่ใช่ emoji
   var html = '';
 
   for (var i = 0; i < 80; i++) {
@@ -410,7 +437,7 @@ function showCardPlayedOverlay(data) {
   if (old) old.remove();
   if (oldBd) oldBd.remove();
 
-  var ci = CARD_INFO[data.cards && data.cards[0] && data.cards[0].type];
+  var ci = getCardInfo(data.cards && data.cards[0] && data.cards[0].type);
   if (!ci) return;
 
   var card = data.cards && data.cards[0];
@@ -420,7 +447,7 @@ function showCardPlayedOverlay(data) {
 
   var cardType = card && card.type;
   var isMe = data.playerId === gs.myId;
-  var pName = isMe ? 'คุณ' : (data.playerName || '?');
+  var pName = isMe ? t('anim.youPlay') : (data.playerName || '?');
 
   if (cardType === 'attack') {
     playSound('attack');
@@ -437,16 +464,16 @@ function showCardPlayedOverlay(data) {
       : 'this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'';
     cardContent =
       '<img src="' + png + '" onerror="' + onErr + '" style="width:100%;height:100%;object-fit:cover;display:block;">' +
-      '<div class="fallback-inner" style="display:none;"><div class="fe">' + ci.emoji + '</div><div class="fn">' + ci.name + '</div></div>';
+      '<div class="fallback-inner" style="display:none;"><div class="fe">' + (CARD_ICONS[cardType] || ICONS.card) + '</div><div class="fn">' + ci.name + '</div></div>';
   } else {
-    cardContent = '<div class="fallback-inner"><div class="fe">' + ci.emoji + '</div><div class="fn">' + ci.name + '</div></div>';
+    cardContent = '<div class="fallback-inner"><div class="fe">' + (CARD_ICONS[cardType] || ICONS.card) + '</div><div class="fn">' + ci.name + '</div></div>';
   }
 
   var isMe2 = data.playerId === gs.myId;
-  var playerLabel = isMe2 ? 'คุณ' : escHtml(data.playerName);
+  var playerLabel = isMe2 ? t('anim.youPlay') : escHtml(data.playerName);
   var cardCount = data.cards ? data.cards.length : 1;
-  var countLabel = cardCount > 1 ? ' ×' + cardCount : '';
-  var labelHTML = '<span class="player-name-hi">' + playerLabel + '</span> เล่น ' + ci.emoji + ' ' + ci.name + countLabel;
+  var countLabel = cardCount > 1 ? ' &times;' + cardCount : '';
+  var labelHTML = '<span class="player-name-hi">' + playerLabel + '</span> ' + t('anim.plays') + ' ' + (CARD_ICONS[cardType] || ICONS.card) + ' ' + ci.name + countLabel;
 
   var bd = document.createElement('div');
   bd.id = 'cardPlayedBackdrop';
@@ -494,12 +521,12 @@ function showShuffleAnimation(playerName) {
   }
 
   var isMe = playerName === (gs.playerNames && gs.playerNames[gs.myId]);
-  var label = (isMe ? 'คุณ' : escHtml(playerName)) + ' สับกองไพ่ 🔀';
+  var label = t('anim.shuffleLabel', { name: isMe ? t('anim.youPlay') : escHtml(playerName) });
 
   overlay.innerHTML =
     '<div class="shuffle-anim-wrap">' +
       '<div class="shuffle-deck">' + cards + '</div>' +
-      '<div class="shuffle-label">' + label + '</div>' +
+      '<div class="shuffle-label">' + ICONS.shuffle + ' ' + label + '</div>' +
     '</div>';
   document.body.appendChild(overlay);
 

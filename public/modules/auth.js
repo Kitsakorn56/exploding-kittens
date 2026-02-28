@@ -1,5 +1,6 @@
 /**
  * auth.js - ฟังก์ชัน authentication และ user profile
+ * [UPDATED] ใช้ ICONS แทน emoji และ t() แทน hardcoded strings
  */
 
 var authAvatarState = { type: null, value: null };
@@ -11,8 +12,8 @@ function setAuthMode(mode) {
   document.getElementById('authDisplayNameGroup').style.display = isLogin ? 'none' : 'block';
   document.getElementById('authAvatarGroup').style.display    = isLogin ? 'none' : 'block';
   document.getElementById('authSubmitBtn').innerHTML = isLogin
-    ? '<i class="fas fa-sign-in-alt me-2"></i>เข้าสู่ระบบ'
-    : '<i class="fas fa-user-plus me-2"></i>สมัครสมาชิก';
+    ? '<i class="fas fa-sign-in-alt me-2"></i>' + t('auth.login')
+    : '<i class="fas fa-user-plus me-2"></i>' + t('auth.signup');
   document.getElementById('authForm').dataset.mode = mode;
 }
 
@@ -29,7 +30,7 @@ async function submitAuth(e) {
     var res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     var data = await res.json();
     if (!res.ok) {
-      showToast('⚠️ ' + data.error);
+      showToast(ICONS.warning + ' ' + data.error);
       return;
     }
     currentUser = data.user;
@@ -37,8 +38,13 @@ async function submitAuth(e) {
     applyUserToUI(currentUser);
     showScreen('home');
   } catch (err) {
-    showToast('⚠️ เชื่อมต่อไม่ได้');
+    showToast(ICONS.warning + ' ' + t('auth.error.connect'));
   }
+}
+
+function submitProfile(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  saveProfile();
 }
 
 function applyUserToUI(user) {
@@ -53,7 +59,6 @@ function applyUserToUI(user) {
       user.avatarUrl.startsWith('http') ||
       user.avatarUrl.startsWith('/')
     )) {
-      // รูปภาพจริง
       profileAvatar.innerHTML = '';
       profileAvatar.style.overflow = 'hidden';
       profileAvatar.style.padding = '0';
@@ -65,10 +70,8 @@ function applyUserToUI(user) {
       };
       profileAvatar.appendChild(img);
     } else if (user.avatarUrl && user.avatarUrl.length <= 4) {
-      // emoji avatar
       profileAvatar.innerHTML = '<span style="font-size:16px;line-height:1;">' + user.avatarUrl + '</span>';
     } else {
-      // default: initial
       var initial = (user.displayName || '?')[0].toUpperCase();
       var colors = ['#6366f1','#8b5cf6','#ec4899','#f97316','#22c55e','#c9973a'];
       var color = colors[(user.displayName || '').length % colors.length];
@@ -101,7 +104,7 @@ function requireLoginOr(fn) {
     }
   }
   if (!currentUser) {
-    showToast('⚠️ กรุณาเข้าสู่ระบบก่อน');
+    showToast(ICONS.warning + ' ' + t('auth.pleaseLogin'));
     showScreen('auth');
     return;
   }
@@ -112,7 +115,7 @@ function openProfileModal() {
   if (currentUser) {
     document.getElementById('profileEmail').textContent = currentUser.email || '-';
     document.getElementById('profileDisplayName').textContent = currentUser.displayName || '-';
-    document.getElementById('profileRank').textContent = (currentUser.rank && currentUser.rank.name) ? currentUser.rank.name : 'ไม่มี';
+    document.getElementById('profileRank').textContent = (currentUser.rank && currentUser.rank.name) ? currentUser.rank.name : t('profile.noRank');
 
     if (currentUser.avatarUrl && (
       currentUser.avatarUrl.startsWith('data:image') ||
@@ -130,11 +133,11 @@ function handleProfilePictureChange(e) {
   var file = e.target.files[0];
   if (!file) return;
   if (file.size > 5 * 1024 * 1024) {
-    showToast('⚠️ ไฟล์ใหญ่เกิน 5MB');
+    showToast(ICONS.warning + ' ' + t('profile.imgSize'));
     return;
   }
   if (!file.type.startsWith('image/')) {
-    showToast('⚠️ ต้องเป็นไฟล์รูปภาพ');
+    showToast(ICONS.warning + ' ' + t('profile.imgType'));
     return;
   }
   var reader = new FileReader();
@@ -142,14 +145,18 @@ function handleProfilePictureChange(e) {
     var base64Data = event.target.result;
     profileAvatarState = { type: 'image', value: base64Data };
     document.getElementById('profilePictureDisplay').innerHTML = '<img src="' + base64Data + '" style="width:100%;height:100%;object-fit:cover;display:block;">';
-    showToast('✅ อัพโหลดรูปสำเร็จ');
+    showToast(ICONS.check + ' ' + t('profile.imgOk'));
   };
   reader.readAsDataURL(file);
 }
 
 async function saveProfile() {
   try {
-    var payload = {};
+    if (!currentUser || !currentUser.id) {
+      showToast(ICONS.warning + ' ' + t('auth.pleaseLogin'));
+      return;
+    }
+    var payload = { userId: currentUser.id };
     if (profileAvatarState.type === 'image') payload.avatarUrl = profileAvatarState.value;
     var res = await fetch('/api/update-profile', {
       method: 'POST',
@@ -158,7 +165,7 @@ async function saveProfile() {
     });
     var data = await res.json();
     if (!res.ok) {
-      showToast('⚠️ ' + data.error);
+      showToast(ICONS.warning + ' ' + data.error);
       return;
     }
     if (data.user) {
@@ -167,9 +174,9 @@ async function saveProfile() {
       applyUserToUI(currentUser);
     }
     safeHideModal('profileModal');
-    showToast('✅ บันทึกโปรไฟล์แล้ว');
+    showToast(ICONS.check + ' ' + t('profile.saved'));
     profileAvatarState = { type: null, value: null };
   } catch (err) {
-    showToast('⚠️ เชื่อมต่อไม่ได้');
+    showToast(ICONS.warning + ' ' + t('auth.error.connect'));
   }
 }

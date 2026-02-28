@@ -16,7 +16,8 @@ let gs = {
   isMyTurn: false, pendingAction: null, pendingInsert: null,
   pendingFavor: null, pendingCatAction: null,
   isSpectator: false,
-  selectedCards: [], catMode: null, catTarget: null
+  selectedCards: [], catMode: null, catTarget: null,
+  myCardSelectionAction: null  // Track current card selection action (favor, see_the_future, alter_the_future, clairvoyance, dig_deeper)
 };
 
 // ตัวแปรอื่น ๆ

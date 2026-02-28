@@ -1,5 +1,6 @@
 /**
  * game-rendering.js - ฟังก์ชันการ render ต่างๆ สำหรับเกมหลัก
+ * [UPDATED] ใช้ ICONS แทน emoji และ t() แทน hardcoded strings
  */
 
 var _prevCurrentPlayer = null;
@@ -7,7 +8,7 @@ var discardPileVisuals = [];
 var lastDiscardCount = 0;
 
 function renderGameScreen() {
-  document.getElementById('roundNumText').textContent = 'รอบที่ ' + gs.roundNum;
+  document.getElementById('roundNumText').textContent = t('game.round', { n: gs.roundNum });
   var cpName = gs.playerNames[gs.currentPlayer] || '?';
   var cpEl = document.getElementById('currentPlayerBanner');
   if (cpEl) {
@@ -24,14 +25,14 @@ function renderGameScreen() {
     _prevCurrentPlayer = gs.currentPlayer;
 
     cpEl.innerHTML = isMe
-      ? '<span class="your-turn-badge">🎯 เทิร์นของคุณ!</span>'
-      : '<span>🎲 เทิร์นของ <strong>' + escHtml(cpName) + '</strong></span>';
+      ? '<span class="your-turn-badge">' + ICONS.myTurn + ' ' + t('game.yourTurn') + '</span>'
+      : '<span>' + ICONS.dice + ' ' + t('game.theirTurn', { name: '<strong>' + escHtml(cpName) + '</strong>' }) + '</span>';
     cpEl.className = 'current-player-banner' + (isMe ? ' my-turn' : '');
   }
   var atEl = document.getElementById('attackTurnsInfo');
   if (atEl) {
     atEl.style.display = (gs.attackTurns > 1 && gs.currentPlayer === gs.myId) ? 'block' : 'none';
-    atEl.textContent = '⚔️ คุณต้องเล่นอีก ' + gs.attackTurns + ' เทิร์น';
+    atEl.innerHTML = ICONS.attack + ' ' + t('game.attackTurns', { n: gs.attackTurns });
   }
   renderTableCenter();
   renderPlayers();
@@ -66,7 +67,6 @@ function renderTableCenter() {
   var discardBadge = document.getElementById('discardCountBadge');
   if (discardBadge) discardBadge.textContent = gs.discardCount || 0;
   renderDiscardPile();
-  renderRiskGauge();
 }
 
 function renderDiscardPile() {
@@ -74,7 +74,7 @@ function renderDiscardPile() {
   if (!pileVis) return;
   if (!gs.discardTop || gs.discardCount === 0) {
     pileVis.classList.remove('has-card');
-    pileVis.innerHTML = '<div class="discard-empty-state" id="discardEmptyState">กองทิ้ง</div>';
+    pileVis.innerHTML = '<div class="discard-empty-state" id="discardEmptyState">' + t('game.discardPile') + '</div>';
     discardPileVisuals = [];
     lastDiscardCount = 0;
     return;
@@ -118,54 +118,47 @@ function renderDiscardPile() {
       html += '<div style="' + cardStyle + '"><div style="' + innerStyle + '">' +
         '<img src="' + png + '" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="' + onErr + '">' +
         '<div style="width:100%;height:100%;display:none;align-items:center;justify-content:center;flex-direction:column;background:' + (ci ? ci.color + '18' : '#2a2a2a') + ';">' +
-        (ci ? '<div style="font-size:1.8rem;">' + ci.emoji + '</div>' : '') + '</div></div></div>';
+        (ci ? '<div style="font-size:1.4rem;">' + (CARD_ICONS[entry.type] || ICONS.card) + '</div>' : '') + '</div></div></div>';
     } else if (ci) {
       html += '<div style="' + cardStyle + '"><div style="' + innerStyle + 'background:' + ci.color + '18;display:flex;align-items:center;justify-content:center;">' +
-        '<div style="font-size:1.8rem;">' + ci.emoji + '</div></div></div>';
+        '<div style="font-size:1.4rem;">' + (CARD_ICONS[entry.type] || ICONS.card) + '</div></div></div>';
     }
   }
   pileVis.innerHTML = '<div style="position:relative;width:100%;height:100%;overflow:visible;">' + html + '</div>';
 }
 
-function renderRiskGauge() {
-  var bombs = gs.explodingKittensInDeck || 0;
-  var total = gs.deckCount || 1;
-  var pct   = total > 0 ? Math.round((bombs / total) * 100) : 0;
-  var pctEl = document.getElementById('riskPercent');
-  if (pctEl) {
-    pctEl.textContent = pct + '%';
-    pctEl.className = 'risk-pct';
-    if (pct === 0 || pct < 20) pctEl.classList.add('low');
-    else if (pct < 40) pctEl.classList.add('medium');
-    else if (pct < 65) pctEl.classList.add('high');
-    else               pctEl.classList.add('danger');
-  }
-  var arcLen = 251, fillLen = arcLen * (pct / 100);
-  var fillColor = pct < 20 ? '#22c55e' : pct < 40 ? '#a3c55e' : pct < 60 ? '#eab308' : pct < 80 ? '#f97316' : '#ef4444';
-  var fillPath = document.getElementById('gaugeFill');
-  if (fillPath) {
-    fillPath.setAttribute('stroke-dasharray', fillLen + ' ' + arcLen);
-    fillPath.setAttribute('stroke', fillColor);
-  }
-  var angle = -180 + (pct / 100) * 180;
-  var rad = (angle * Math.PI) / 180;
-  var nx = 100 + 72 * Math.cos(rad), ny = 100 + 72 * Math.sin(rad);
-  var needle = document.getElementById('gaugeNeedle');
-  if (needle) {
-    needle.setAttribute('x2', nx.toFixed(1));
-    needle.setAttribute('y2', ny.toFixed(1));
-    needle.setAttribute('stroke', fillColor);
-  }
-  var gG = document.getElementById('gaugeGreen'), gY = document.getElementById('gaugeYellow'), gR = document.getElementById('gaugeRed');
-  if (gG && gY && gR) {
-    gG.setAttribute('opacity', pct < 33  ? '0.7' : '0.25');
-    gY.setAttribute('opacity', pct >= 33 && pct < 66 ? '0.7' : '0.25');
-    gR.setAttribute('opacity', pct >= 66 ? '0.7' : '0.25');
-  }
-}
+/** icon map สำหรับ card type → ICONS key */
+var CARD_ICONS = {
+  exploding_kitten: ICONS.explode,
+  defuse:           ICONS.defuse,
+  see_the_future:   ICONS.future,
+  shuffle:          ICONS.shuffle,
+  skip:             ICONS.skip,
+  attack:           ICONS.attack,
+  nope:             ICONS.nope,
+  favor:            ICONS.favor,
+  taco_cat:         ICONS.cat,
+  hairy_potato_cat: ICONS.cat,
+  beard_cat:        ICONS.cat,
+  rainbow_cat:      ICONS.cat,
+  cattermelon:      ICONS.cat,
+  alter_the_future: ICONS.alter,
+  clairvoyance:     ICONS.clairvoyance,
+  clone:            ICONS.clone,
+  dig_deeper:       ICONS.dig,
+  draw_from_bottom: ICONS.drawBottom,
+  reverse:          ICONS.reverse,
+};
 
-function buildCardIconsHTML(count) {
-  if (count === 0) return '<div class="card-icons-row"><span style="font-size:0.6rem;color:var(--text-3);">ไม่มีไพ่</span></div>';
+function buildCardIconsHTML(count, actionType) {
+  // If an action type is specified, show status instead of card count
+  if (actionType && gs.myCardSelectionAction === actionType) {
+    var statusKey = 'status.' + actionType;
+    var statusText = t(statusKey);
+    return '<div class="card-icons-row" style="font-size:0.75rem;color:var(--gold);font-weight:bold;padding:4px 8px;background:rgba(201,151,58,0.15);border-radius:6px;white-space:nowrap;">' + statusText + '</div>';
+  }
+  
+  if (count === 0) return '<div class="card-icons-row"><span style="font-size:0.6rem;color:var(--text-3);">' + t('misc.noCards') + '</span></div>';
   var max = 7;
   var show = Math.min(count, max);
   var html = '<div class="card-icons-row">';
@@ -184,21 +177,22 @@ function renderPlayers() {
     var name = gs.playerNames[pid] || '?';
     var count = gs.handCounts[pid] || 0;
     var rank = gs.playerRanks && gs.playerRanks[pid];
+    var actionType = (isMe && gs.myCardSelectionAction) ? gs.myCardSelectionAction : null;
     return '<div class="player-chip' + (isCurrent ? ' current' : '') + (isMe ? ' mine' : '') + '" onclick="selectCatTarget(\'' + pid + '\')" id="pchip-' + pid + '">' +
       getAvatarHTML(gs.playerAvatars && gs.playerAvatars[pid], name, 40) +
       '<div class="player-chip-info">' +
-        '<div class="player-chip-name">' + escHtml(name) + (isMe ? ' <span class="you-label">(คุณ)</span>' : '') + '</div>' +
+        '<div class="player-chip-name">' + escHtml(name) + (isMe ? ' <span class="you-label">' + t('misc.you') + '</span>' : '') + '</div>' +
         (rank ? '<div class="rank-badge" style="color:' + rank.color + '">' + rank.name + '</div>' : '') +
-        buildCardIconsHTML(count) +
+        buildCardIconsHTML(count, actionType) +
       '</div>' +
-      (isCurrent ? '<div class="turn-indicator">🎯</div>' : '') +
+      (isCurrent ? '<div class="turn-indicator">' + ICONS.turn + '</div>' : '') +
     '</div>';
   }).join('') + gs.deadPlayers.map(function(pid) {
     return '<div class="player-chip dead">' +
       getAvatarHTML(gs.playerAvatars && gs.playerAvatars[pid], gs.playerNames[pid], 40) +
       '<div class="player-chip-info">' +
         '<div class="player-chip-name">' + escHtml(gs.playerNames[pid] || '?') + '</div>' +
-        '<div class="dead-label">💀 ระเบิดแล้ว</div>' +
+        '<div class="dead-label">' + ICONS.skull + ' ' + t('misc.dead') + '</div>' +
       '</div></div>';
   }).join('');
 }
@@ -226,9 +220,9 @@ function showNopeBanner(data) {
   banner.className = 'nope-banner';
   banner.innerHTML =
     '<div style="display:flex;align-items:center;gap:12px;">' +
-      '<div style="font-size:2.4rem;">🚫</div>' +
+      '<div style="font-size:1.6rem;">' + ICONS.nope + '</div>' +
       '<div>' +
-        '<div style="font-family:Cinzel,serif;font-size:1.3rem;font-weight:900;color:#ec4899;">NOPE!</div>' +
+        '<div style="font-family:Kanit,sans-serif;font-size:1.3rem;font-weight:900;color:#ec4899;">NOPE!</div>' +
         (data.playerName ? '<div style="font-size:0.75rem;color:rgba(255,200,200,0.8);">' + escHtml(data.playerName) + ' ยกเลิก</div>' : '') +
       '</div>' +
     '</div>';
@@ -243,18 +237,13 @@ function showNopeBanner(data) {
 function showWinScreen(data) {
   var winEl = document.getElementById('winScreen');
   if (!winEl) return;
-  var name = data.winner === gs.myId ? 'คุณ!' : (data.winnerName || '?');
-  winEl.innerHTML =
-    '<div class="win-content">' +
-      '<div class="win-confetti"></div>' +
-      '<div style="font-size:3rem;margin-bottom:20px;animation:explode-emoji-pulse 0.6s ease;">🏆</div>' +
-      '<div style="font-family:Cinzel,serif;font-size:2.2rem;font-weight:900;color:#f0c060;margin-bottom:12px;text-shadow:0 0 20px rgba(240,192,96,0.8);">ผู้ชนะ!</div>' +
-      '<div style="font-size:1.6rem;color:#e0e0e0;margin-bottom:24px;">' + escHtml(name) + '</div>' +
-      '<div style="display:flex;gap:12px;justify-content:center;margin-top:24px;">' +
-        '<button class="btn btn-success" onclick="playAgain()">🔄 เล่นอีกครั้ง</button>' +
-        '<button class="btn btn-secondary" onclick="backToLobbyFromWin()">🏠 กลับ Lobby</button>' +
-      '</div>' +
-    '</div>';
+  var name = data.winner === gs.myId ? t('win.you') : (data.winnerName || '?');
+  var winnerEl = document.getElementById('winnerName');
+  if (winnerEl) winnerEl.textContent = name;
+  var msgEl = document.getElementById('winMessage');
+  if (msgEl) msgEl.textContent = t('win.title');
+  var hostBtn = document.getElementById('hostNextGameBtn');
+  if (hostBtn) hostBtn.style.display = gs.isHost ? 'inline-block' : 'none';
   winEl.style.display = 'flex';
   playSound('win');
   showConfettiAnimation();

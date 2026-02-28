@@ -30,7 +30,8 @@ function showScreen(id) {
 function showToast(msg, duration) {
   if (!duration) duration = 3000;
   const t = document.getElementById('toast');
-  t.textContent = msg;
+  // ใช้ innerHTML เพื่อรองรับ <i> icon tags จาก ICONS.*
+  t.innerHTML = msg;
   t.style.display = 'block';
   clearTimeout(t._timer);
   t._timer = setTimeout(() => {
@@ -89,6 +90,13 @@ function safeShowModal(modalId, options) {
 }
 
 function safeHideModal(modalId) {
+  // Clear card selection action flags for card-selection modals
+  var cardSelectionModals = ['favorModal', 'seeFutureModal', 'alterFutureModal', 'clairvoyanceModal', 'digDeeperModal'];
+  if (cardSelectionModals.indexOf(modalId) !== -1) {
+    gs.myCardSelectionAction = null;
+    if (typeof renderGameScreen === 'function') renderGameScreen();
+  }
+  
   var el = document.getElementById(modalId);
   if (!el) return;
   if (el._safehide_pending) return;

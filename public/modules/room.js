@@ -1,5 +1,6 @@
 /**
  * room.js - การจัดการห้อง (สร้าง เข้าร่วม ออก)
+ * [UPDATED] ใช้ ICONS แทน emoji และ t() แทน hardcoded strings
  */
 
 function generateRoomCode() {
@@ -10,7 +11,7 @@ function generateRoomCode() {
 function createRoom() {
   playSound('click');
   if (!currentUser) {
-    showToast('⚠️ กรุณาเข้าสู่ระบบก่อน');
+    showToast(ICONS.warning + ' ' + t('auth.pleaseLogin'));
     return;
   }
   showLoading();
@@ -21,21 +22,21 @@ function createRoom() {
   gs.players = [];
   gs.playerNames = {};
   gs.myId = null;
-  socket.emit('join-room', { roomId: gs.roomId, playerName: name });
+  socket.emit('join-room', { roomId: gs.roomId, playerName: name, userId: currentUser.id, avatarUrl: currentUser.avatarUrl || null });
   showLobbyHost();
-  showToast('✅ สร้างห้องสำเร็จ!');
+  showToast(ICONS.check + ' ' + t('lobby.created'));
   setTimeout(hideLoading, 1500);
 }
 
 function joinRoom() {
   playSound('click');
   if (!currentUser) {
-    showToast('⚠️ กรุณาเข้าสู่ระบบก่อน');
+    showToast(ICONS.warning + ' ' + t('auth.pleaseLogin'));
     return;
   }
   const code = document.getElementById('roomCode').value.trim().toUpperCase();
   if (code.length !== 4) {
-    showToast('⚠️ รหัส 4 ตัวอักษร!');
+    showToast(ICONS.warning + ' ' + t('lobby.codeLength'));
     return;
   }
   const name = currentUser.displayName;
@@ -44,7 +45,7 @@ function joinRoom() {
   gs.isHost = false;
   pendingJoinRoom = true;
   showLoading();
-  socket.emit('join-room', { roomId: code, playerName: name });
+  socket.emit('join-room', { roomId: code, playerName: name, userId: currentUser.id, avatarUrl: currentUser.avatarUrl || null });
 }
 
 function showLobbyHost() {
@@ -72,11 +73,12 @@ function buildQR() {
 
 function copyRoomCode() {
   playSound('click');
+  var successMsg = '<i class="fas fa-clipboard-check" style="color:#22c55e;"></i> ' + t('lobby.copied', { code: gs.roomId });
+  var failMsg = '<i class="fas fa-exclamation-triangle" style="color:#f97316;"></i> ' + t('lobby.copyFail', { code: gs.roomId });
+
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(gs.roomId)
-      .then(function() {
-        showToast('📋 คัดลอก: ' + gs.roomId);
-      })
+      .then(function() { showToast(successMsg); })
       .catch(function() {
         try {
           var tmp = document.createElement('input');
@@ -85,9 +87,9 @@ function copyRoomCode() {
           tmp.select();
           document.execCommand('copy');
           tmp.remove();
-          showToast('📋 คัดลอก: ' + gs.roomId);
+          showToast(successMsg);
         } catch (e) {
-          showToast('⚠️ คัดลอกไม่ได้ — กรุณาคัดลอกเอง: ' + gs.roomId, 5000);
+          showToast(failMsg, 5000);
         }
       });
   } else {
@@ -98,9 +100,9 @@ function copyRoomCode() {
       tmp.select();
       document.execCommand('copy');
       tmp.remove();
-      showToast('📋 คัดลอก: ' + gs.roomId);
+      showToast(successMsg);
     } catch (e) {
-      showToast('⚠️ คัดลอกไม่ได้ — กรุณาคัดลอกเอง: ' + gs.roomId, 5000);
+      showToast(failMsg, 5000);
     }
   }
 }
@@ -112,10 +114,10 @@ function updateLobbyPlayersList() {
   list.innerHTML = gs.players.map(function(pid) {
     return '<div class="player-row d-flex align-items-center gap-2 p-2 mb-2 rounded">' +
       '<div class="player-avatar-sm">' + getAvatarHTML(gs.playerAvatars && gs.playerAvatars[pid], gs.playerNames[pid], 36) + '</div>' +
-      '<span class="flex-grow-1">' + escHtml(gs.playerNames[pid]) + (pid === gs.myId ? ' <small class="text-muted">(คุณ)</small>' : '') + '</span>' +
+      '<span class="flex-grow-1">' + escHtml(gs.playerNames[pid]) + (pid === gs.myId ? ' <small class="text-muted">' + t('misc.you') + '</small>' : '') + '</span>' +
       (pid === gs.players[0]
-        ? '<span class="badge" style="background:rgba(201,151,58,0.15);color:#c9973a;border:1px solid rgba(201,151,58,0.3);">👑 Host</span>'
-        : '<span class="badge bg-success">✓</span>') +
+        ? '<span class="badge" style="background:rgba(201,151,58,0.15);color:#c9973a;border:1px solid rgba(201,151,58,0.3);"><i class="fas fa-crown me-1"></i>' + t('lobby.hostBadge') + '</span>'
+        : '<span class="badge bg-success"><i class="fas fa-check"></i></span>') +
       '</div>';
   }).join('');
 }
@@ -127,7 +129,7 @@ function updateGuestPlayersList() {
   list.innerHTML = gs.players.map(function(pid) {
     return '<div class="player-row d-flex align-items-center gap-2 p-2 mb-2 rounded">' +
       '<div class="player-avatar-sm">' + getAvatarHTML(gs.playerAvatars && gs.playerAvatars[pid], gs.playerNames[pid], 36) + '</div>' +
-      '<span>' + escHtml(gs.playerNames[pid]) + (pid === gs.myId ? ' <small class="text-muted">(คุณ)</small>' : '') + '</span>' +
+      '<span>' + escHtml(gs.playerNames[pid]) + (pid === gs.myId ? ' <small class="text-muted">' + t('misc.you') + '</small>' : '') + '</span>' +
       '</div>';
   }).join('');
 }
@@ -135,7 +137,7 @@ function updateGuestPlayersList() {
 function startGame() {
   playSound('click');
   if (gs.players.length < 2) {
-    showToast('⚠️ ต้องมีผู้เล่นอย่างน้อย 2 คน!');
+    showToast(ICONS.warning + ' ' + t('lobby.minPlayers'));
     return;
   }
   socket.emit('start-game');
@@ -149,7 +151,7 @@ function leaveLobby() {
     gameState: 'lobby', myId: null
   });
   showScreen('home');
-  showToast('👋 ออกจากห้องแล้ว');
+  showToast(ICONS.info + ' ' + t('lobby.left'));
 }
 
 function leaveGame() {
@@ -160,5 +162,5 @@ function leaveGame() {
     gameState: 'lobby', myId: null, myHand: [], selectedCards: []
   });
   showScreen('home');
-  showToast('👋 ออกจากเกมแล้ว');
+  showToast(ICONS.info + ' ' + t('game.leaveGame'));
 }

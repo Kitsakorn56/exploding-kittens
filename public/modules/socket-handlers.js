@@ -1,20 +1,19 @@
 /**
  * socket-handlers.js - ตัวรับ socket events ทั้งหมด
+ * [UPDATED] ใช้ ICONS แทน emoji, t() แทน hardcoded strings
+ * [UPDATED] เพิ่ม Activity Feed calls ทุก event
  */
 
-// ตัวแปรช่วยสำหรับ socket handlers
 var _favorModalOpen = false;
 var _prevMyHandIds = [];
+var _prevTurnPlayer = null; // track turn changes สำหรับ feed
 
-// === ฟังก์ชัน: ตั้งค่า Socket Handlers ===
 function setupSocketHandlers() {
   if (!socket) {
     console.warn('⚠️ Socket not ready yet');
-    setTimeout(setupSocketHandlers, 100); // Retry after 100ms
+    setTimeout(setupSocketHandlers, 100);
     return;
   }
-
-// === Socket.IO Handlers ===
 
 socket.on('your-player-id', function(id) {
   gs.myId = id;
@@ -25,7 +24,7 @@ socket.on('your-player-id', function(id) {
 socket.on('join-error', function(data) {
   pendingJoinRoom = false;
   hideLoading();
-  showToast((data && data.message) || '⚠️ ไม่พบห้องนี้');
+  showToast(ICONS.warning + ' ' + ((data && data.message) || t('lobby.notFound')));
 });
 
 socket.on('room-updated', function(data) {
@@ -37,6 +36,8 @@ socket.on('room-updated', function(data) {
       gs.playerAvatars = gs.playerAvatars || {};
       gs.playerAvatars[p.id] = p.avatarUrl;
       gs.playerRanks[p.id] = p.rank;
+      gs.userIds = gs.userIds || {};
+      gs.userIds[p.id] = (p.userId !== undefined) ? p.userId : null;
     });
     if (gs.isHost) updateLobbyPlayersList();
     else {
@@ -44,7 +45,7 @@ socket.on('room-updated', function(data) {
       if (pendingJoinRoom) {
         pendingJoinRoom = false;
         showLobbyGuest();
-        showToast('✅ เข้าห้องสำเร็จ!');
+        showToast(ICONS.check + ' ' + t('lobby.joined'));
         setTimeout(hideLoading, 1500);
       }
     }
@@ -63,8 +64,10 @@ socket.on('game-started', function(data) {
   lastDiscardCount = 0;
   _prevCurrentPlayer = null;
   _prevHandCount = 0;
+  _prevTurnPlayer = null;
   var ws = document.getElementById('winScreen');
   if (ws) ws.style.display = 'none';
+  clearFeed();
   ['cardPickerModal','targetPickerModal','insertModal','favorModal','steal3Modal','discard5Modal'].forEach(function(id) {
     safeHideModal(id);
   });
@@ -72,13 +75,22 @@ socket.on('game-started', function(data) {
 
 socket.on('card-played', function(data) {
   showCardPlayedOverlay(data);
-  var ci = CARD_INFO[data.cards && data.cards[0] && data.cards[0].type];
-  updateActionLog(data.playerName + ' เล่น ' + (ci ? ci.emoji : '') + ' ' + (ci ? ci.name : ''));
+  var cardType = data.cards && data.cards[0] && data.cards[0].type;
+  var cardCount = data.cards ? data.cards.length : 1;
+  var isMe = data.playerId === gs.myId;
+  // ไม่ feed ถ้าเป็นเทิร์นเรา (เราเห็น overlay อยู่แล้ว)
+  if (!isMe) {
+    feedCardPlayed(data.playerName, false, cardType, cardCount);
+  }
+  var ci = getCardInfo(cardType);
+  updateActionLog(data.playerName + ' ' + t('anim.plays') + ' ' + (ci ? ci.name : ''));
 });
 
 socket.on('nope-played', function(data) {
   playSound('nope');
-  showToast('🚫 ' + data.playerName + ' ' + (data.noped ? 'Nope!' : 'Nope the Nope!'));
+  var isMe = data.playerName === gs.playerNames[gs.myId];
+  feedNopePlayed(data.playerName, data.noped);
+  showToast(ICONS.nope + ' ' + data.playerName + ' ' + (data.noped ? t('toast.nope', { name: '' }).trim() : t('toast.nopeNope', { name: '' }).trim()));
 });
 
 socket.on('action-noped', function(data) {
@@ -88,35 +100,43 @@ socket.on('action-noped', function(data) {
   var bd = document.getElementById('cardPlayedBackdrop');
   if (overlay) overlay.remove();
   if (bd) bd.remove();
-  showToast('❌ ' + data.playerName + ' ถูก Nope — ยกเลิกแล้ว');
+  showToast(ICONS.nope + ' ' + t('toast.nopeCancelled', { name: data.playerName }));
 });
 
 socket.on('see-the-future-result', function(data) {
+  gs.myCardSelectionAction = 'see_the_future';
+  renderGameScreen();
   var cards = data.cards, cardInfoMap = data.cardInfoMap;
   var content = document.getElementById('seeFutureContent');
   if (content) {
-    content.innerHTML = '<p class="mb-3" style="color:var(--text-2);">3 ใบบนสุดของกอง (ใบที่ 1 = บนสุด)</p>' +
+    content.innerHTML = '<p class="mb-3" style="color:var(--text-2);">' + t('modal.seeFutureDesc') + '</p>' +
       '<div class="d-flex gap-3 justify-content-center flex-wrap">' +
       cards.map(function(c, i) {
         var ci = cardInfoMap[c.type];
         var imgObj = CARD_INFO[c.type] ? getCardImg(c) : null;
         var imgTag = imgObj ? buildImgTag(imgObj, ci.name, 'future-card-img', '') : '';
+        var cardIcon = CARD_ICONS[c.type] || ICONS.card;
         return '<div class="future-card text-center" style="background:' + ci.color + '15;border-color:' + ci.color + '40;animation:future-card-reveal 0.4s cubic-bezier(0.34,1.56,0.64,1) ' + (i*0.12) + 's both;">' +
-          imgTag + '<div style="font-size:' + (imgObj ? '1.2rem' : '2rem') + ';">' + ci.emoji + '</div>' +
+          imgTag + '<div style="font-size:' + (imgObj ? '1rem' : '1.6rem') + ';">' + cardIcon + '</div>' +
           '<div style="font-size:0.72rem;font-weight:700;margin-top:4px;">' + ci.name + '</div>' +
-          '<div style="font-size:0.62rem;opacity:0.5;">ใบที่ ' + (i+1) + '</div></div>';
+          '<div style="font-size:0.62rem;opacity:0.5;">' + t('modal.seeFuturePos', { n: i + 1 }) + '</div></div>';
       }).join('') + '</div>';
     safeShowModal('seeFutureModal');
   }
 });
 
 socket.on('drew-exploding-kitten', function(data) {
-  if (data.hadDefuse && data.playerId === gs.myId) {
-    showToast('💥➡️🛡️ คุณจั่ว Exploding Kitten แต่ใช้ Defuse รอดได้!');
-    openInsertModal(data.deckSize);
+  var isMe = data.playerId === gs.myId;
+  if (data.hadDefuse) {
+    if (isMe) {
+      showToast(ICONS.explode + ' ' + ICONS.defuse + ' ' + t('toast.defused'));
+      openInsertModal(data.deckSize);
+    }
+    feedDefused(data.playerName, isMe);
+  } else {
+    feedPlayerExploded(data.playerName, isMe);
   }
   playSound('explode');
-  var isMe = data.playerId === gs.myId;
   showExplodeAnimation(data.playerName, isMe);
 });
 
@@ -127,19 +147,24 @@ socket.on('choose-insert-position', function(data) {
 socket.on('player-exploded', function(data) {
   playSound('explode');
   var isMe = data.playerId === gs.myId;
-  showToast(isMe ? '💥 คุณระเบิดแล้ว! กำลังดูแบบ Spectator' : '💥 ' + data.playerName + ' ระเบิดแล้ว!');
+  showToast(isMe
+    ? ICONS.skull + ' ' + t('toast.youExploded')
+    : ICONS.explode + ' ' + t('toast.exploded', { name: data.playerName }));
+  // feed อาจถูกเรียกแล้วจาก drew-exploding-kitten แต่ไม่เสียหายถ้าเรียกซ้ำ
 });
 
 socket.on('game-over', function(data) {
   gs.gameState = 'ended';
   gs.winner = data.winner;
   showWinScreen(data);
+  clearFeed();
 });
 
 socket.on('deck-shuffled', function(data) {
   playSound('shuffle');
   showShuffleAnimation(data.playerName);
-  showToast('🔀 ' + data.playerName + ' สับกองไพ่');
+  var isMe = data.playerName === gs.playerNames[gs.myId];
+  feedShuffled(data.playerName, isMe);
   discardPileVisuals = [];
   lastDiscardCount = 0;
 });
@@ -149,7 +174,22 @@ socket.on('log-action', function(data) {
 });
 
 socket.on('favor-given', function(data) {
-  showToast('🙀 ' + data.fromName + ' ให้ ' + (data.cardInfo ? data.cardInfo.emoji : '🃏') + ' ' + (data.cardInfo ? data.cardInfo.name : 'ไพ่') + ' แก่ ' + data.toName);
+  gs.myCardSelectionAction = null;
+  renderGameScreen();
+  var cardLabel = data.cardInfo ? data.cardInfo.name : '';
+  feedFavorGiven(data.fromName, data.toName, cardLabel);
+  showToast(ICONS.favor + ' ' + t('toast.favorGiven', {
+    from: data.fromName,
+    card: cardLabel,
+    to:   data.toName
+  }));
+});
+
+socket.on('favor-noped', function() {
+  gs.myCardSelectionAction = null;
+  _favorModalOpen = false;
+  safeHideModal('favorModal');
+  renderGameScreen();
 });
 
 socket.on('steal-result', function(data) {
@@ -158,6 +198,9 @@ socket.on('steal-result', function(data) {
       ? data.fromId
       : gs.alivePlayers.find(function(pid) { return gs.playerNames[pid] === data.fromName; });
     if (fromPid) showStealAnimation(fromPid, data.card);
+    // feed steal
+    var ci = getCardInfo(data.card.type);
+    feedStolenCard(gs.playerNames[gs.myId], true, data.fromName, ci ? ci.name : '');
   }
 });
 
@@ -169,10 +212,13 @@ socket.on('card-stolen', function(data) {
       var fakeCard = { type: Object.keys(CARD_INFO).find(function(k) { return CARD_INFO[k].emoji === data.cardInfo.emoji; }) || 'nope', variantIndex: 0 };
       showStealAnimation(fromPid, fakeCard);
     }
-    var cardLabel = data.cardInfo ? (data.cardInfo.emoji + ' ' + data.cardInfo.name) : 'ไพ่';
-    showToast('🐱 คุณขโมย ' + cardLabel + ' จาก ' + (data.fromName || '?'));
+    var cardLabel = data.cardInfo ? data.cardInfo.name : t('card.playCard', { name: '' }).trim();
+    showToast(ICONS.steal + ' ' + t('toast.stoleCard', { card: cardLabel, from: data.fromName || '?' }));
   } else {
-    showToast('🐱 ' + (data.byName || '?') + ' ขโมยไพ่จาก ' + (data.fromName || '?'));
+    // คนอื่นขโมยกัน — แสดงใน feed
+    var cardLbl = data.cardInfo ? data.cardInfo.name : '';
+    feedStolenCard(data.byName, false, data.fromName, cardLbl);
+    showToast(ICONS.steal + ' ' + t('toast.stoleOther', { by: data.byName || '?', from: data.fromName || '?' }));
   }
 });
 
@@ -182,8 +228,8 @@ socket.on('card-was-stolen', function(data) {
     hand.classList.add('hand-stolen-flash');
     setTimeout(function() { hand.classList.remove('hand-stolen-flash'); }, 500);
   }
-  var cardLabel = data.cardInfo ? (data.cardInfo.emoji + ' ' + data.cardInfo.name) : 'ไพ่';
-  showToast('😱 ' + (data.byName || '?') + ' ขโมย ' + cardLabel + ' ของคุณ!', 4000);
+  var cardLabel = data.cardInfo ? data.cardInfo.name : '';
+  showToast(ICONS.warning + ' ' + t('toast.cardStolen', { by: data.byName || '?', card: cardLabel }), 4000);
 });
 
 socket.on('pick-card-type-to-steal', function(data) {
@@ -195,15 +241,20 @@ socket.on('pick-from-discard', function(data) {
 });
 
 socket.on('exploding-kitten-inserted', function(data) {
-  showToast('🛡️ ' + data.playerName + ' ใส่ Exploding Kitten คืนกองแล้ว');
+  var isMe = data.playerName === gs.playerNames[gs.myId];
+  feedInsertedKitten(data.playerName, isMe, data.position || 0);
+  showToast(ICONS.defuse + ' ' + t('toast.shuffleInserted').replace('{name}', data.playerName || ''));
 });
 
 socket.on('attacked', function(data) {
-  showToast('⚔️ ' + data.playerName + ' โจมตี! ผู้เล่นถัดไปต้องเล่น ' + data.attackTurns + ' เทิร์น');
+  var isMe = data.playerName === gs.playerNames[gs.myId];
+  feedAttacked(data.playerName, isMe, data.attackTurns);
+  showToast(ICONS.attack + ' ' + t('toast.attacked', { name: data.playerName, n: data.attackTurns }));
 });
 
 socket.on('card-drawn-normal', function(data) {
   if (data.playerId !== gs.myId) {
+    feedDrawCard(data.playerName, false);
     updateActionLog(data.playerName + ' จั่วไพ่');
   }
 });
@@ -219,13 +270,21 @@ socket.on('player-left', function(data) {
     gs.players = data.players.map(function(p){ return p.id; });
     data.players.forEach(function(p){ gs.playerNames[p.id] = p.name; });
   }
-  showToast('👋 ' + data.playerName + ' ออก');
+  addFeedEvent({
+    icon: ICONS.door, actor: data.playerName,
+    text: 'ออกจากเกม', type: 'warn', duration: 3500,
+  });
+  showToast(ICONS.info + ' ' + t('toast.playerLeft', { name: data.playerName }));
   if (gs.isHost) updateLobbyPlayersList();
   else updateGuestPlayersList();
 });
 
 socket.on('player-disconnected', function(data) {
-  showToast('📴 ' + (data.playerName || 'ผู้เล่น') + ' หลุดการเชื่อมต่อ');
+  addFeedEvent({
+    icon: ICONS.warning, actor: data.playerName,
+    text: 'หลุดการเชื่อมต่อ', type: 'danger', duration: 4000,
+  });
+  showToast(ICONS.warning + ' ' + t('toast.disconnected', { name: data.playerName || 'ผู้เล่น' }));
 });
 
 socket.on('host-left-room', function(data) {
@@ -236,11 +295,11 @@ socket.on('host-left-room', function(data) {
   gs.gameState = 'lobby';
   gs.myHand = [];
   showScreen('home');
-  showToast((data && data.message) || 'เจ้าของห้องออกแล้ว');
+  showToast(ICONS.warning + ' ' + ((data && data.message) || t('toast.hostLeft')));
 });
 
 socket.on('game-error', function(data) {
-  showToast('⚠️ ' + data.message);
+  showToast(ICONS.warning + ' ' + (data.message || t('misc.error')));
 });
 
 socket.on('rank-updated', function(data) {
@@ -251,8 +310,22 @@ socket.on('rank-updated', function(data) {
 });
 
 socket.on('game-state', function(data) {
+  // Clear card selection action when pendingFavor is cleared
+  if (!data.pendingFavor && gs.myCardSelectionAction === 'favor') {
+    gs.myCardSelectionAction = null;
+  }
+
   var prevIds = _prevMyHandIds.slice();
+  var prevTurn = _prevTurnPlayer;
   Object.assign(gs, data);
+
+  // ── Track turn change → feed ──
+  if (data.currentPlayer && data.currentPlayer !== prevTurn && prevTurn !== null) {
+    var cpName = gs.playerNames[data.currentPlayer] || '?';
+    var isMyTurnNow = data.currentPlayer === gs.myId;
+    feedTurnChanged(cpName, isMyTurnNow);
+  }
+  _prevTurnPlayer = data.currentPlayer;
 
   if (data.myHand) {
     var newIds = data.myHand.map(function(c) { return c.id; });
@@ -267,9 +340,15 @@ socket.on('game-state', function(data) {
   }
 
   if (data.pendingFavor && data.pendingFavor.targetId === gs.myId && !_favorModalOpen) {
+    gs.myCardSelectionAction = 'favor';
+    renderGameScreen();
+    _favorModalOpen = true;
     openFavorModal(data.pendingFavor);
   }
-  if (!data.pendingFavor) _favorModalOpen = false;
+  if (!data.pendingFavor) {
+    gs.myCardSelectionAction = null;
+    _favorModalOpen = false;
+  }
 
   if (gs.gameState === 'playing' || gs.gameState === 'ended') renderGameScreen();
 
@@ -289,47 +368,67 @@ socket.on('admin-search-result', function(data) {
     '<span style="font-size:0.9rem;">' + escHtml(u.displayName) + ' (' + u.email + ')</span></div>';
 });
 
-// === New Card Event Handlers ===
-
 socket.on('alter-future-choice', function(data) {
   if (data.playerId === gs.myId) {
+    gs.myCardSelectionAction = 'alter_the_future';
+    renderGameScreen();
     openAlterFutureModal(data);
   } else {
-    showToast('👁️ ' + (data.playerName || 'ผู้เล่น') + ' กำลังเรียงลำดับไพ่...');
+    addFeedEvent({
+      icon: ICONS.alter, actor: data.playerName,
+      text: 'กำลังเรียงลำดับไพ่...',
+      color: 'rgba(139,92,246,0.7)', duration: 3500,
+    });
   }
 });
 
 socket.on('clairvoyance-revealed', function(data) {
   if (data.playerId === gs.myId) {
+    gs.myCardSelectionAction = 'clairvoyance';
+    renderGameScreen();
     openClairvoyanceModal(data);
   }
-  showToast('🔮 ' + (data.playerName || 'ผู้เล่น') + ' ใช้ Clairvoyance');
+  addFeedEvent({
+    icon: ICONS.clairvoyance, actor: data.playerName,
+    text: 'ใช้ Clairvoyance',
+    color: 'rgba(6,182,212,0.7)', duration: 3500,
+  });
 });
 
 socket.on('clone-choice', function(data) {
   if (data.playerId === gs.myId) {
     var el = document.getElementById('cloneContent');
     if (el) {
-      var ci = CARD_INFO[data.cardToClone.type];
+      var ci = getCardInfo(data.cardToClone.type);
       var imgObj = getCardImg(data.cardToClone);
       var imgTag = imgObj ? buildImgTag(imgObj, ci.name, 'clone-card-img', '') : '';
+      var cardIcon = CARD_ICONS[data.cardToClone.type] || ICONS.card;
       el.innerHTML = '<div style="text-align:center;padding:16px;">' +
         imgTag +
-        '<div style="font-size:1.4rem;">' + ci.emoji + '</div>' +
-        '<div style="font-weight:700;margin-top:8px;">คัดลอกการ์ด: ' + ci.name + '</div>' +
+        '<div style="font-size:1.4rem;">' + cardIcon + '</div>' +
+        '<div style="font-weight:700;margin-top:8px;">' + t('modal.cardPickerTitle') + ': ' + ci.name + '</div>' +
         '<div style="font-size:0.85rem;margin-top:4px;">' + ci.desc + '</div>' +
       '</div>';
     }
     safeShowModal('cloneModal', { backdrop: 'static', keyboard: false });
   }
-  showToast('📋 ' + (data.playerName || 'ผู้เล่น') + ' ใช้ Clone');
+  addFeedEvent({
+    icon: ICONS.clone, actor: data.playerName,
+    text: 'ใช้ Clone',
+    color: 'rgba(99,102,241,0.7)', duration: 3500,
+  });
 });
 
 socket.on('dig-deeper-choice', function(data) {
   if (data.playerId === gs.myId) {
+    gs.myCardSelectionAction = 'dig_deeper';
+    renderGameScreen();
     openDigDeeperModal(data);
   } else {
-    showToast('🔍 ' + (data.playerName || 'ผู้เล่น') + ' ใช้ Dig Deeper');
+    addFeedEvent({
+      icon: ICONS.dig, actor: data.playerName,
+      text: 'ใช้ Dig Deeper', duration: 3000,
+    });
   }
 });
 
@@ -337,22 +436,30 @@ socket.on('draw-from-bottom-defense', function(data) {
   if (data.playerId === gs.myId) {
     openDrawFromBottomModal(data);
   }
-  showToast('⬇️ ' + (data.playerName || 'ผู้เล่น') + ' ใช้ Draw from the Bottom (ป้องกัน Attack)');
+  addFeedEvent({
+    icon: ICONS.drawBottom, actor: data.playerName,
+    text: 'จั่วจากล่าง (ป้องกัน Attack)',
+    type: 'good', duration: 3500,
+  });
 });
 
 socket.on('reverse-played', function(data) {
-  if (!data.twoPlayerMode) {
-    playSound('shuffle');
-  }
-  showToast('🔄 ' + (data.playerName || 'ผู้เล่น') + ' ใช้ Reverse — ' + 
-    (data.twoPlayerMode ? 'ทำหน้าที่เป็น Skip' : 'ลำดับการเล่นถูกย้อน'));
+  if (!data.twoPlayerMode) playSound('shuffle');
+  var isMe = data.playerName === gs.playerNames[gs.myId];
+  var effect = data.twoPlayerMode ? t('toast.reverse.twoP') : t('toast.reverse.normal');
+  addFeedEvent({
+    icon: ICONS.reverse, actor: data.playerName, isMe: isMe,
+    text: 'Reverse' + (data.twoPlayerMode ? ' (= Skip)' : ''),
+    color: 'rgba(236,72,153,0.7)', duration: 3500,
+  });
+  showToast(ICONS.reverse + ' ' + t('toast.reverse', { name: data.playerName || 'ผู้เล่น', effect: effect }));
 });
 
 socket.on('clone-card-applied', function(data) {
-  showToast('✅ Clone ได้ผล! ' + (data.cardInfo ? data.cardInfo.emoji + ' ' + data.cardInfo.name : 'ไพ่'));
+  var cardLabel = data.cardInfo ? data.cardInfo.name : '';
+  showToast(ICONS.check + ' ' + t('toast.cloneApplied', { card: cardLabel }));
 });
 
 } // End setupSocketHandlers()
 
-// Auto-start setup when this file loads
 setupSocketHandlers();

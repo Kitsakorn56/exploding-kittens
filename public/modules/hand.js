@@ -1,54 +1,204 @@
 /**
  * hand.js - จัดการมือไพ่และการเลือกไพ่
+ * [UPDATED] ใช้ ICONS แทน emoji และ t() แทน hardcoded strings
  */
 
 var _prevHandCount = 0;
-var _previewTimeout = null;
-var _touchTimeout = null;
-var _touchMoved = false;
 
+// ─── Card Tooltip ─────────────────────────────────────────────────────────────
+var _tooltipEl     = null;
+var _tooltipTimer  = null;
+var _tooltipVisible = false;
+
+function getOrCreateTooltip() {
+  if (!_tooltipEl) {
+    _tooltipEl = document.createElement('div');
+    _tooltipEl.id = 'cardTooltip';
+    _tooltipEl.className = 'card-tooltip';
+    document.body.appendChild(_tooltipEl);
+  }
+  return _tooltipEl;
+}
+
+function showCardTooltip(cardEl, ci) {
+  if (!ci) return;
+  var tip = getOrCreateTooltip();
+  tip.innerHTML =
+    '<div class="card-tooltip-emoji">' + (CARD_ICONS[ci._type] || ICONS.card) + '</div>' +
+    '<div class="card-tooltip-body">' +
+      '<div class="card-tooltip-name">' + ci.name + '</div>' +
+      '<div class="card-tooltip-desc">' + ci.desc + '</div>' +
+    '</div>';
+  tip.style.opacity = '0';
+  tip.style.display = 'flex';
+  tip.style.pointerEvents = 'none';
+  var rect = cardEl.getBoundingClientRect();
+  var tipW = tip.offsetWidth || 220;
+  var tipH = tip.offsetHeight || 64;
+  var margin = 10;
+  var left = rect.left + rect.width / 2 - tipW / 2;
+  var top  = rect.top - tipH - margin;
+  left = Math.max(margin, Math.min(left, window.innerWidth - tipW - margin));
+  if (top < margin) top = rect.bottom + margin;
+  tip.style.left = left + 'px';
+  tip.style.top  = top + 'px';
+  requestAnimationFrame(function() {
+    tip.style.transition = 'opacity 0.18s ease, transform 0.18s ease';
+    tip.style.transform = 'translateY(4px) scale(0.97)';
+    requestAnimationFrame(function() {
+      tip.style.opacity = '1';
+      tip.style.transform = 'translateY(0) scale(1)';
+    });
+  });
+  _tooltipVisible = true;
+}
+
+function hideCardTooltip() {
+  clearTimeout(_tooltipTimer);
+  _tooltipTimer = null;
+  if (_tooltipEl && _tooltipVisible) {
+    _tooltipEl.style.transition = 'opacity 0.15s ease';
+    _tooltipEl.style.opacity = '0';
+    setTimeout(function() { if (_tooltipEl) _tooltipEl.style.display = 'none'; }, 160);
+    _tooltipVisible = false;
+  }
+}
+
+function attachCardTooltip(el, ci) {
+  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+  el.addEventListener('mouseenter', function() {
+    clearTimeout(_tooltipTimer);
+    _tooltipTimer = setTimeout(function() { showCardTooltip(el, ci); }, 420);
+  });
+  el.addEventListener('mouseleave', function() {
+    clearTimeout(_tooltipTimer);
+    hideCardTooltip();
+  });
+}
+
+// ─── Card Info Popup ──────────────────────────────────────────────────────────
+var _cardInfoPopupEl = null;
+
+function getOrCreateCardInfoPopup() {
+  if (!_cardInfoPopupEl) {
+    _cardInfoPopupEl = document.createElement('div');
+    _cardInfoPopupEl.id = 'cardInfoPopup';
+    _cardInfoPopupEl.className = 'card-info-popup';
+    _cardInfoPopupEl.innerHTML =
+      '<div class="cip-backdrop" onclick="hideCardInfoPopup()"></div>' +
+      '<div class="cip-panel">' +
+        '<button class="cip-close" onclick="hideCardInfoPopup()"><i class="fas fa-times"></i></button>' +
+        '<div class="cip-img-wrap" id="cipImgWrap"></div>' +
+        '<div class="cip-name" id="cipName"></div>' +
+        '<div class="cip-desc" id="cipDesc"></div>' +
+      '</div>';
+    document.body.appendChild(_cardInfoPopupEl);
+  }
+  return _cardInfoPopupEl;
+}
+
+function showCardInfoPopup(card) {
+  var ci = getCardInfo(card.type);
+  if (!ci) return;
+  var popup = getOrCreateCardInfoPopup();
+
+  var imgObj = getCardImg(card);
+  var wrap = popup.querySelector('#cipImgWrap');
+  if (imgObj) {
+    var png = imgObj.png || imgObj;
+    var jpg = imgObj.jpg || null;
+    var onErr = jpg
+      ? 'this.onerror=function(){this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'};this.src=\'' + jpg + '\''
+      : 'this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'';
+    wrap.innerHTML =
+      '<img src="' + png + '" alt="' + ci.name + '" class="cip-img" onerror="' + onErr + '">' +
+      '<div class="cip-img-fallback" style="display:none;background:' + ci.color + '22;">' +
+        '<span style="font-size:2.2rem;">' + (CARD_ICONS[card.type] || ICONS.card) + '</span>' +
+      '</div>';
+  } else {
+    wrap.innerHTML =
+      '<div class="cip-img-fallback" style="display:flex;background:' + ci.color + '22;">' +
+        '<span style="font-size:2.2rem;">' + (CARD_ICONS[card.type] || ICONS.card) + '</span>' +
+      '</div>';
+  }
+
+  popup.querySelector('#cipName').innerHTML = (CARD_ICONS[card.type] || ICONS.card) + ' ' + ci.name;
+  popup.querySelector('#cipDesc').textContent = ci.desc;
+  popup.classList.add('visible');
+}
+
+function hideCardInfoPopup() {
+  if (_cardInfoPopupEl) _cardInfoPopupEl.classList.remove('visible');
+}
+
+// ─── Build Card HTML ──────────────────────────────────────────────────────────
 function buildCardHTML(card, index, total) {
-  var ci = CARD_INFO[card.type];
+  var ci = getCardInfo(card.type);
   var isSelected = gs.selectedCards.indexOf(card.id) !== -1;
   var isNope = card.type === 'nope';
   var imgObj = getCardImg(card);
+  var cardIcon = CARD_ICONS[card.type] || ICONS.card;
+
   var fallbackHTML = '<div class="hand-card-fallback" style="display:flex;">' +
-    '<div class="hand-card-emoji">' + (ci ? ci.emoji : '?') + '</div>' +
+    '<div class="hand-card-emoji">' + cardIcon + '</div>' +
     '<div class="hand-card-name">' + (ci ? ci.name : card.type) + '</div>' +
     '</div>';
   var innerContent = imgObj
     ? buildImgTag(imgObj, ci ? ci.name : card.type, 'hand-card-img', '') +
-      '<div class="hand-card-fallback" style="display:none;"><div class="hand-card-emoji">' + (ci ? ci.emoji : '?') + '</div>' +
+      '<div class="hand-card-fallback" style="display:none;"><div class="hand-card-emoji">' + cardIcon + '</div>' +
       '<div class="hand-card-name">' + (ci ? ci.name : card.type) + '</div></div>'
     : fallbackHTML;
-  if (isSelected) innerContent += '<div class="selected-badge">✓</div>';
+
+  if (isSelected) innerContent += '<div class="selected-badge"><i class="fas fa-check"></i></div>';
+  // info hint icon
+  if (ci) innerContent += '<div class="card-info-hint" title="">' + ICONS.hint + '</div>';
+
   return '<div class="hand-card' + (isSelected ? ' selected' : '') + (isNope ? ' nope-card' : '') + '"' +
     ' style="z-index:' + (isSelected ? 60 : index + 1) + ';"' +
-    ' onclick="toggleSelectCard(' + card.id + ',\'' + card.type + '\')"' +
-    ' onmouseenter="showCardPreview(' + card.id + ',\'' + card.type + '\',event)"' +
-    ' onmouseleave="hideCardPreview()"' +
-    ' ontouchstart="startCardTouchPreview(' + card.id + ',\'' + card.type + '\',event)"' +
-    ' ontouchend="endCardTouchPreview()"' +
-    ' ontouchmove="cancelCardTouchPreview()"' +
-    ' title="' + (ci ? ci.desc : '') + '">' +
+    ' data-card-id="' + card.id + '"' +
+    ' data-card-type="' + card.type + '"' +
+    ' onclick="handleCardClick(event,' + card.id + ',\'' + card.type + '\')">' +
     innerContent + '</div>';
+}
+
+function handleCardClick(e, cardId, cardType) {
+  if (e.target && (e.target.classList.contains('card-info-hint') || e.target.closest('.card-info-hint'))) {
+    e.stopPropagation();
+    var card = (gs.myHand || []).find(function(c) { return c.id === cardId; })
+      || { id: cardId, type: cardType, variantIndex: 0 };
+    showCardInfoPopup(card);
+    return;
+  }
+  toggleSelectCard(cardId, cardType);
 }
 
 function renderHand() {
   var container = document.getElementById('myHand');
   if (!container) return;
   if (gs.isSpectator) {
-    container.innerHTML = '<div style="color:var(--text-3);font-style:italic;text-align:center;padding:32px 0;width:100%;">💀 คุณถูกระเบิดแล้ว — กำลังดู Spectator</div>';
+    container.innerHTML = '<div style="color:var(--text-3);font-style:italic;text-align:center;padding:32px 0;width:100%;">' +
+      ICONS.spectator + ' ' + t('game.spectating') + '</div>';
     return;
   }
   if (!gs.myHand.length) {
-    container.innerHTML = '<div style="color:var(--text-3);text-align:center;padding:32px 0;width:100%;">ไม่มีไพ่ในมือ</div>';
+    container.innerHTML = '<div style="color:var(--text-3);text-align:center;padding:32px 0;width:100%;">' + t('game.noCards') + '</div>';
     return;
   }
 
   var newCount = gs.myHand.length;
   var prevCount = _prevHandCount;
   container.innerHTML = gs.myHand.map(function(card, i) { return buildCardHTML(card, i, gs.myHand.length); }).join('');
+
+  // Attach tooltips — store type on ci for icon lookup
+  hideCardTooltip();
+  container.querySelectorAll('.hand-card').forEach(function(el) {
+    var type = el.getAttribute('data-card-type');
+    var ci = getCardInfo(type);
+    if (ci) {
+      var ciWithType = Object.assign({}, ci, { _type: type });
+      attachCardTooltip(el, ciWithType);
+    }
+  });
 
   if (newCount > prevCount) {
     var cards = container.querySelectorAll('.hand-card');
@@ -65,7 +215,7 @@ function renderHand() {
 
 function toggleSelectCard(cardId, cardType) {
   if (!gs.isMyTurn && cardType !== 'nope') {
-    showToast('⚠️ ยังไม่ใช่เทิร์นของคุณ');
+    showToast(ICONS.warning + ' ' + t('card.notYourTurn'));
     return;
   }
   if (cardType === 'nope') {
@@ -73,7 +223,7 @@ function toggleSelectCard(cardId, cardType) {
       playSound('nope');
       socket.emit('play-nope', { cardId: cardId });
     } else {
-      showToast('⚠️ ไม่มีไพ่ที่จะ Nope ได้ตอนนี้');
+      showToast(ICONS.warning + ' ' + t('card.noNopeTarget'));
     }
     return;
   }
@@ -83,94 +233,4 @@ function toggleSelectCard(cardId, cardType) {
   if (idx === -1) gs.selectedCards.push(cardId);
   else gs.selectedCards.splice(idx, 1);
   renderHand();
-}
-
-function showCardPreview(cardId, cardType, event) {
-  clearTimeout(_previewTimeout);
-  var ci = CARD_INFO[cardType];
-  if (!ci) return;
-
-  var tooltip = document.getElementById('cardPreviewTooltip');
-  if (!tooltip) {
-    tooltip = document.createElement('div');
-    tooltip.id = 'cardPreviewTooltip';
-    tooltip.className = 'card-preview-tooltip';
-    document.body.appendChild(tooltip);
-  }
-
-  tooltip.innerHTML =
-    '<div class="card-preview-content">' +
-      '<div class="card-preview-emoji">' + ci.emoji + '</div>' +
-      '<div class="card-preview-name">' + ci.name + '</div>' +
-      '<div class="card-preview-desc">' + ci.desc + '</div>' +
-      '<div class="card-preview-type">' + cardType.toUpperCase().replace(/_/g, ' ') + '</div>' +
-    '</div>';
-
-  _previewTimeout = setTimeout(function() {
-    var rect = event.target.closest('.hand-card').getBoundingClientRect();
-    tooltip.style.left = (rect.left + rect.width/2 - 140) + 'px';
-    tooltip.style.top = (rect.top - 160) + 'px';
-    tooltip.classList.add('show');
-  }, 120);
-}
-
-function hideCardPreview() {
-  clearTimeout(_previewTimeout);
-  var tooltip = document.getElementById('cardPreviewTooltip');
-  if (tooltip) tooltip.classList.remove('show');
-}
-
-function startCardTouchPreview(cardId, cardType, event) {
-  _touchMoved = false;
-  clearTimeout(_touchTimeout);
-  _touchTimeout = setTimeout(function() {
-    if (!_touchMoved) showCardDetailModal(cardId, cardType);
-  }, 500);
-}
-
-function endCardTouchPreview() {
-  clearTimeout(_touchTimeout);
-  _touchTimeout = null;
-}
-
-function cancelCardTouchPreview() {
-  _touchMoved = true;
-  clearTimeout(_touchTimeout);
-}
-
-function showCardDetailModal(cardId, cardType) {
-  var ci = CARD_INFO[cardType];
-  if (!ci) return;
-
-  var backdrop = document.createElement('div');
-  backdrop.className = 'card-detail-modal-backdrop show';
-  backdrop.onclick = function(e) {
-    if (e.target === backdrop) closeCardDetailModal();
-  };
-
-  var modal = document.createElement('div');
-  modal.className = 'card-detail-modal';
-  var card = gs.myHand.find(function(c) { return c.id === cardId; });
-  var imgObj = card ? getCardImg(card) : null;
-  var imgHTML = imgObj ? buildImgTag(imgObj, ci.name, 'card-detail-img', '') : '';
-  modal.innerHTML =
-    '<div class="card-detail-modal-close" onclick="closeCardDetailModal()">✕</div>' +
-    (imgHTML ? '<div style="display:flex;justify-content:center;">' + imgHTML + '</div>' : '') +
-    '<div class="card-detail-emoji">' + ci.emoji + '</div>' +
-    '<div class="card-detail-name">' + ci.name + '</div>' +
-    '<div class="card-detail-desc">' + ci.desc + '</div>' +
-    '<div class="card-detail-type">' + cardType.toUpperCase().replace(/_/g, ' ') + '</div>' +
-    '<div class="card-detail-hint">👆 แตะ ✕ หรือพื้นที่นอก เพื่อปิด</div>';
-
-  backdrop.appendChild(modal);
-  document.body.appendChild(backdrop);
-
-  window._cardDetailBackdrop = backdrop;
-}
-
-function closeCardDetailModal() {
-  if (window._cardDetailBackdrop) {
-    window._cardDetailBackdrop.remove();
-    window._cardDetailBackdrop = null;
-  }
 }
