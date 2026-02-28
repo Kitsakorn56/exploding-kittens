@@ -1,7 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,400&family=Sarabun:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400&display=swap');
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body, input, button, select, textarea { font-family: 'Sarabun', 'Cinzel', sans-serif; }
+body, input, button, select, textarea { font-family: 'Kanit', sans-serif; }
 
 :root {
   --felt:       #1F6C36;
@@ -113,7 +113,7 @@ body::after {
 
 /* LOGO */
 .game-title-logo {
-  font-family: 'Cinzel', serif;
+  font-family: 'Kanit', sans-serif;
   font-size: 2.4rem; font-weight: 900;
   text-align: center;
   background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 50%, #a07828 100%);
@@ -127,7 +127,7 @@ body::after {
 .btn-orange {
   background: linear-gradient(135deg, #b5321c, #c9973a);
   color: #fff; border: none; font-weight: 700;
-  font-family: 'Cinzel', serif; letter-spacing: 0.04em;
+  font-family: 'Kanit', sans-serif; letter-spacing: 0.04em;
   transition: all 0.2s; border-radius: var(--radius-sm);
   box-shadow: 0 4px 16px rgba(192,57,43,0.3);
 }
@@ -159,7 +159,7 @@ body::after {
   border-radius: calc(var(--radius-md) - 4px) !important;
   color: var(--text-2); border: none; font-weight: 600;
   padding: 8px 16px; transition: all 0.2s;
-  font-family: 'Cinzel', serif; font-size: 0.82rem; letter-spacing: 0.05em;
+  font-family: 'Kanit', sans-serif; font-size: 0.82rem; letter-spacing: 0.05em;
 }
 .pill-tab.active { background: linear-gradient(135deg, #b5321c, #c9973a) !important; color: #fff !important; }
 .pill-tab:hover:not(.active) { color: var(--text-1); }
@@ -213,12 +213,12 @@ body::after {
   padding: 12px 18px;
   backdrop-filter: blur(12px);
 }
-.current-player-banner { font-size: 1rem; font-weight: 700; color: var(--text-1); font-family: 'Cinzel', serif; }
+.current-player-banner { font-size: 1rem; font-weight: 700; color: var(--text-1); font-family: 'Kanit', sans-serif; }
 .current-player-banner.my-turn { color: var(--gold-light); }
 .your-turn-badge {
   background: linear-gradient(135deg, var(--gold-light), var(--gold));
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text; font-size: 1.1rem; font-family: 'Cinzel', serif;
+  background-clip: text; font-size: 1.1rem; font-family: 'Kanit', sans-serif;
   filter: drop-shadow(0 0 8px rgba(201,151,58,0.6));
 }
 .attack-info {
@@ -335,7 +335,7 @@ body::after {
   padding: 6px 4px;
 }
 .hand-card-emoji { font-size: 2.2rem; line-height: 1; }
-.hand-card-name  { font-size: 0.6rem; font-weight: 800; color: #2d1a0a; text-align: center; line-height: 1.2; font-family: 'Cinzel', serif; }
+.hand-card-name  { font-size: 0.6rem; font-weight: 800; color: #2d1a0a; text-align: center; line-height: 1.2; font-family: 'Kanit', sans-serif; }
 
 .hand-card:hover {
   transform: translateY(-22px) scale(1.05);
@@ -379,7 +379,7 @@ body::after {
 .variant-badge {
   position: absolute; bottom: 5px; left: 5px;
   background: rgba(0,0,0,0.65); color: rgba(255,255,255,0.8);
-  font-size: 0.55rem; font-weight: 900; font-family: 'Cinzel', serif;
+  font-size: 0.55rem; font-weight: 900; font-family: 'Kanit', sans-serif;
   padding: 1px 5px; border-radius: 6px;
   border: 1px solid rgba(255,255,255,0.2);
   pointer-events: none; z-index: 3; letter-spacing: 0.05em;
@@ -389,7 +389,7 @@ body::after {
 .draw-btn {
   font-weight: 700; padding: 9px 20px;
   border-radius: var(--radius-sm); transition: all 0.2s;
-  font-family: 'Cinzel', serif; font-size: 0.8rem; letter-spacing: 0.05em;
+  font-family: 'Kanit', sans-serif; font-size: 0.8rem; letter-spacing: 0.05em;
 }
 .btn-draw-active {
   background: linear-gradient(135deg, #1a6b3a, #22c55e);
@@ -443,7 +443,7 @@ body::after {
 }
 @keyframes pop-in { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .win-emoji { font-size: 4.5rem; margin-bottom: 14px; filter: drop-shadow(0 0 16px rgba(201,151,58,0.7)); }
-.win-title { font-size: 1.8rem; font-weight: 900; color: var(--text-1); font-family: 'Cinzel', serif; margin-bottom: 8px; }
+.win-title { font-size: 1.8rem; font-weight: 900; color: var(--text-1); font-family: 'Kanit', sans-serif; margin-bottom: 8px; }
 .win-msg { color: var(--text-2); font-size: 1rem; }
 
 /* SPECTATOR */
@@ -472,13 +472,13 @@ body::after {
 }
 
 /* FAVOR / STEAL */
-.favor-card-option, .steal-card-option {
+.favor-card-option, .steal-card-option, .steal3-card-option {
   background: rgba(0,0,0,0.3); border: 1px solid var(--border);
   border-radius: var(--radius-sm); padding: 10px 16px; cursor: pointer;
   font-size: 0.9rem; transition: all 0.15s; flex: 1 1 calc(50% - 8px);
   color: var(--text-1);
 }
-.favor-card-option:hover, .steal-card-option:hover {
+.favor-card-option:hover, .steal-card-option:hover, .steal3-card-option:hover {
   background: rgba(201,151,58,0.1); border-color: var(--gold); transform: translateY(-2px);
 }
 
@@ -567,7 +567,7 @@ body::after {
 .card-back-inner::after  { bottom: 4px; right: 5px; }
 .card-back-logo { font-size: 1.8rem; line-height: 1; filter: drop-shadow(0 0 6px rgba(255,100,100,0.8)); }
 .card-back-text {
-  font-family: 'Cinzel', serif; font-size: 0.5rem; font-weight: 900;
+  font-family: 'Kanit', sans-serif; font-size: 0.5rem; font-weight: 900;
   color: var(--gold-light); letter-spacing: 0.15em; text-align: center;
 }
 .card-back-visual::before {
@@ -590,7 +590,7 @@ body::after {
   background: rgba(0,0,0,0.75);
   border: 1px solid var(--gold);
   color: var(--gold-light);
-  font-family: 'Cinzel', serif; font-weight: 900;
+  font-family: 'Kanit', sans-serif; font-weight: 900;
   font-size: 0.9rem; padding: 2px 10px; border-radius: 20px;
   min-width: 36px; text-align: center;
   backdrop-filter: blur(4px);
@@ -632,29 +632,7 @@ body::after {
 }
 .discard-pile-visual.has-card::before { display: block; }
 
-/* Risk Gauge */
-.risk-gauge-area {
-  display: flex; flex-direction: column; align-items: center;
-  flex-shrink: 0; position: relative;
-}
-.risk-gauge-svg { width: 140px; height: 88px; }
-.risk-label-area {
-  display: flex; flex-direction: column; align-items: center;
-  margin-top: -6px;
-}
-.risk-label-text {
-  font-family: 'Cinzel', serif; font-size: 0.62rem; font-weight: 700;
-  color: var(--text-3); letter-spacing: 0.2em; text-transform: uppercase;
-}
-.risk-pct {
-  font-family: 'Cinzel', serif; font-size: 1.6rem; font-weight: 900;
-  color: var(--text-1); line-height: 1; letter-spacing: -0.02em;
-  transition: color 0.5s;
-}
-.risk-pct.low    { color: #22c55e; }
-.risk-pct.medium { color: #eab308; }
-.risk-pct.high   { color: #f97316; }
-.risk-pct.danger { color: #ef4444; filter: drop-shadow(0 0 6px rgba(239,68,68,0.6)); }
+
 
 /* ══ MOBILE GAME ROOT ══ */
 .mobile-game-root {
@@ -719,8 +697,8 @@ body::after {
 .mgr-table {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: center;
+  gap: 16px;
   padding: 14px 12px;
   background: rgba(5,18,12,0.7);
   border: 1px solid rgba(201,151,58,0.15);
@@ -739,15 +717,7 @@ body::after {
   height: 109px;
 }
 
-/* Center col */
-.mgr-center-col {
-  flex: 1; display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px; min-width: 0;
-}
-.mgr-center-col .risk-gauge-svg { width: 120px; height: 76px; }
-.mgr-center-col .risk-pct { font-size: 1.3rem; }
+
 
 /* pile count badge */
 .mgr-draw .pile-count-badge,
@@ -806,11 +776,9 @@ body::after {
   .mobile-game-root { min-height: auto; gap: 12px; }
   .mgr-topbar { margin-bottom: 0; }
   .mgr-middle { flex-direction: column; gap: 12px; }
-  .mgr-table { padding: 20px 24px; gap: 24px; justify-content: center; }
+  .mgr-table { padding: 20px 24px; gap: 28px; justify-content: center; }
   .mgr-draw .card-back-visual  { width: 88px; height: 126px; }
   .mgr-discard .discard-pile-visual { width: 88px; height: 126px; }
-  .mgr-center-col .risk-gauge-svg { width: 140px; height: 88px; }
-  .mgr-center-col .risk-pct { font-size: 1.6rem; }
   .mgr-hand-section { padding: 14px 14px 10px; }
   .mgr-hand-section .hand-card { width: 100px; height: 143px; }
   .mgr-hand-section .hand-area { padding: 48px 8px 14px 8px; gap: 8px; }
@@ -838,10 +806,84 @@ body::after {
   .container-fluid { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
   #toast { bottom: calc(24px + env(safe-area-inset-bottom)); }
 }
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(201,151,58,0.25); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(201,151,58,0.5); }
+/* ══════════════════════════════════════
+   CARD TOOLTIP
+══════════════════════════════════════ */
+.card-tooltip {
+  position: fixed;
+  z-index: 9990;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(6, 18, 12, 0.97);
+  border: 1px solid rgba(201, 151, 58, 0.45);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.7), 0 0 12px rgba(201,151,58,0.15);
+  max-width: 240px;
+  min-width: 160px;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.card-tooltip-emoji {
+  font-size: 1.6rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.card-tooltip-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.card-tooltip-name {
+  font-family: 'Kanit', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--gold-light);
+  white-space: nowrap;
+}
+.card-tooltip-desc {
+  font-size: 0.72rem;
+  color: var(--text-2);
+  line-height: 1.4;
+}
+
+/* Hint button มุมบนขวาของการ์ดในมือ */
+.card-info-hint {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(201,151,58,0.4);
+  color: rgba(245,230,200,0.6);
+  font-size: 0.62rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  line-height: 1;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.card-info-hint:hover,
+.card-info-hint:active {
+  background: rgba(201,151,58,0.3);
+  border-color: rgba(201,151,58,0.8);
+  color: var(--gold-light);
+}
+/* ซ่อน hint ตอนการ์ด selected เพราะมี ✓ badge อยู่แล้ว */
+.hand-card.selected .card-info-hint {
+  opacity: 0.5;
+}
+
 
 .discard-pile-visual { overflow: visible !important; }
 .discard-pile-visual.has-card {
@@ -928,7 +970,7 @@ body::after {
   font-size: 0.58rem;
   font-weight: 900;
   color: var(--gold);
-  font-family: 'Cinzel', serif;
+  font-family: 'Kanit', sans-serif;
   line-height: 1;
   margin-left: 2px;
 }
@@ -986,7 +1028,7 @@ body::after {
 .card-played-card .fallback-inner .fn {
   font-size: 0.65rem; font-weight: 800;
   color: #2d1a0a; text-align: center;
-  font-family: 'Cinzel', serif;
+  font-family: 'Kanit', sans-serif;
 }
 .card-played-label {
   background: rgba(5,15,10,0.92);
@@ -996,7 +1038,7 @@ body::after {
   font-size: 0.88rem;
   font-weight: 700;
   color: var(--text-1);
-  font-family: 'Cinzel', serif;
+  font-family: 'Kanit', sans-serif;
   text-align: center;
   box-shadow: 0 4px 16px rgba(0,0,0,0.5), var(--shadow-glow);
   white-space: nowrap;
@@ -1057,7 +1099,7 @@ body::after {
   padding: 6px 18px;
   border-radius: 20px;
   font-size: 0.85rem; font-weight: 700;
-  font-family: 'Cinzel', serif;
+  font-family: 'Kanit', sans-serif;
   white-space: nowrap;
 }
 .shuffle-anim-wrap {
@@ -1167,14 +1209,13 @@ body.screen-shake {
   from { transform: scale(1); opacity: 1; }
   to   { transform: scale(0.8) translateY(-20px); opacity: 0; }
 }
-.my-turn-label {}
 
 .turn-change-pill {
   background: rgba(5,18,12,0.95);
   border: 1px solid var(--border-h);
   border-radius: 24px;
   padding: 10px 22px;
-  font-family: 'Cinzel', serif;
+  font-family: 'Kanit', sans-serif;
   font-size: 0.88rem;
   font-weight: 700;
   color: var(--text-1);
@@ -1294,7 +1335,7 @@ body.screen-shake {
   position: absolute; bottom: 5px; right: 5px;
   background: rgba(236,72,153,0.85);
   color: white; font-size: 0.45rem; font-weight: 900;
-  font-family: 'Cinzel', serif; letter-spacing: 0.12em;
+  font-family: 'Kanit', sans-serif; letter-spacing: 0.12em;
   padding: 2px 5px; border-radius: 5px;
   pointer-events: none; z-index: 3;
 }
@@ -1346,7 +1387,7 @@ body.screen-shake {
   line-height: 1;
 }
 .card-preview-name {
-  font-family: 'Cinzel', serif;
+  font-family: 'Kanit', sans-serif;
   font-size: 1.1rem;
   font-weight: 900;
   color: var(--gold-light);
@@ -1357,7 +1398,7 @@ body.screen-shake {
   color: rgba(245,230,200,0.85);
   line-height: 1.5;
   text-align: center;
-  font-family: 'Sarabun', sans-serif;
+  font-family: 'Kanit', sans-serif;
 }
 .card-preview-type {
   font-size: 0.7rem;
@@ -1431,7 +1472,7 @@ body.screen-shake {
   justify-content: center;
   transition: all 0.2s;
   font-weight: bold;
-  font-family: 'Cinzel', serif;
+  font-family: 'Kanit', sans-serif;
 }
 .card-detail-modal-close:active {
   background: rgba(201,151,58,0.3);
@@ -1451,7 +1492,7 @@ body.screen-shake {
   line-height: 1;
 }
 .card-detail-name {
-  font-family: 'Cinzel', serif;
+  font-family: 'Kanit', sans-serif;
   font-size: 1.6rem;
   font-weight: 900;
   color: var(--gold-light);
@@ -1462,7 +1503,7 @@ body.screen-shake {
   color: rgba(245,230,200,0.9);
   line-height: 1.8;
   text-align: center;
-  font-family: 'Sarabun', sans-serif;
+  font-family: 'Kanit', sans-serif;
 }
 .card-detail-type {
   font-size: 0.8rem;
@@ -1478,4 +1519,154 @@ body.screen-shake {
   text-align: center;
   margin-top: 12px;
   font-style: italic;
+}
+/* ══════════════════════════════════════
+   CARD INFO POPUP (กดปุ่ม ?)
+══════════════════════════════════════ */
+.card-info-popup {
+  position: fixed;
+  inset: 0;
+  z-index: 9995;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.card-info-popup.visible {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+/* backdrop */
+.cip-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+/* panel ลอยขึ้นจากด้านล่าง */
+.cip-panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 360px;
+  background: rgba(8, 22, 14, 0.98);
+  border: 1px solid rgba(201,151,58,0.35);
+  border-bottom: none;
+  border-radius: 24px 24px 0 0;
+  padding: 20px 20px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.7), 0 0 20px rgba(201,151,58,0.1);
+  transform: translateY(100%);
+  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.card-info-popup.visible .cip-panel {
+  transform: translateY(0);
+}
+
+/* desktop: เป็น centered card แทน bottom sheet */
+@media (min-width: 600px) {
+  .card-info-popup {
+    align-items: center;
+  }
+  .cip-panel {
+    max-width: 300px;
+    border: 1px solid rgba(201,151,58,0.35);
+    border-radius: 20px;
+    padding: 24px 24px 28px;
+    transform: scale(0.88) translateY(12px);
+  }
+  .card-info-popup.visible .cip-panel {
+    transform: scale(1) translateY(0);
+  }
+}
+
+.cip-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: var(--text-2);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.cip-close:hover { background: rgba(255,255,255,0.14); color: var(--text-1); }
+
+/* รูปการ์ด */
+.cip-img-wrap {
+  width: 100px;
+  height: 143px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 16px rgba(201,151,58,0.2);
+  border: 1.5px solid rgba(201,151,58,0.3);
+  flex-shrink: 0;
+  position: relative;
+}
+.cip-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.cip-img-fallback {
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  inset: 0;
+}
+
+.cip-name {
+  font-family: 'Kanit', sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--gold-light);
+  text-align: center;
+  margin-top: 4px;
+}
+.cip-desc {
+  font-size: 0.82rem;
+  color: var(--text-2);
+  text-align: center;
+  line-height: 1.5;
+  max-width: 240px;
+}
+
+#activityFeed {
+  /* container สร้างใน JS แล้ว — style เสริมตรงนี้ */
+  pointer-events: none;
+}
+
+/* mobile: เลื่อน feed ลงนิดนึงเพื่อไม่ชนกับ profile button */
+@media (max-width: 480px) {
+  #activityFeed {
+    top: 60px !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    width: min(92vw, 420px) !important;
+    max-width: min(92vw, 420px) !important;
+  }
+}
+
+/* ── ซ่อน action log เดิม (ถ้า element ยังอยู่) ── */
+#actionLog {
+  display: none !important;
 }
