@@ -305,6 +305,50 @@ function getNextPlayerIndex(room) {
   return ((room.currentPlayerIndex + dir) % len + len) % len;
 }
 
+function rebindPlayerSocket(room, oldId, newId, playerName, userId, avatarUrl, userRank) {
+  const idx = room.players.indexOf(oldId);
+  if (idx !== -1) room.players[idx] = newId;
+
+  const aliveIdx = room.alivePlayers.indexOf(oldId);
+  if (aliveIdx !== -1) room.alivePlayers[aliveIdx] = newId;
+
+  room.playerNames[newId] = playerName || room.playerNames[oldId];
+  room.playerAvatars[newId] = (avatarUrl !== undefined) ? avatarUrl : room.playerAvatars[oldId];
+  room.playerRanks[newId] = (userRank !== undefined) ? userRank : room.playerRanks[oldId];
+  room.userIds[newId] = (userId !== undefined) ? userId : room.userIds[oldId];
+  room.scores[newId] = room.scores[oldId] || { wins: 0 };
+  room.hands[newId] = room.hands[oldId] || [];
+
+  delete room.playerNames[oldId];
+  delete room.playerAvatars[oldId];
+  delete room.playerRanks[oldId];
+  delete room.userIds[oldId];
+  delete room.scores[oldId];
+  delete room.hands[oldId];
+
+  if (room.pendingInsert && room.pendingInsert.playerId === oldId) room.pendingInsert.playerId = newId;
+  if (room.pendingAlterFuture && room.pendingAlterFuture.playerId === oldId) room.pendingAlterFuture.playerId = newId;
+  if (room.pendingDigDeeper && room.pendingDigDeeper.playerId === oldId) room.pendingDigDeeper.playerId = newId;
+
+  if (room.pendingFavor) {
+    if (room.pendingFavor.targetId === oldId) room.pendingFavor.targetId = newId;
+    if (room.pendingFavor.requesterId === oldId) room.pendingFavor.requesterId = newId;
+  }
+  if (room.pendingSteal3) {
+    if (room.pendingSteal3.requesterId === oldId) room.pendingSteal3.requesterId = newId;
+    if (room.pendingSteal3.targetId === oldId) room.pendingSteal3.targetId = newId;
+  }
+  if (room.pendingDiscard5 && room.pendingDiscard5.requesterId === oldId) room.pendingDiscard5.requesterId = newId;
+  if (room.pendingCatAction) {
+    if (room.pendingCatAction.requesterId === oldId) room.pendingCatAction.requesterId = newId;
+    if (room.pendingCatAction.targetId === oldId) room.pendingCatAction.targetId = newId;
+  }
+  if (room.pendingAction) {
+    if (room.pendingAction.playerId === oldId) room.pendingAction.playerId = newId;
+    if (room.pendingAction.targetPlayerId === oldId) room.pendingAction.targetPlayerId = newId;
+  }
+}
+
 function broadcastGameState(room, io) {
   const allPlayers = room.players;
   allPlayers.forEach(pid => {
@@ -637,7 +681,6 @@ io.on('connection', (socket) => {
     }
 
     const room = rooms[roomId];
-    if (room.gameState === 'playing') { socket.emit('join-error', { message: 'เกมเริ่มแล้ว' }); return; }
 
     let userRank = null;
     if (userId && mongoose.connection.readyState === 1) {
@@ -648,6 +691,14 @@ io.on('connection', (socket) => {
           socket.isAdmin = !!u.isAdmin;
         }
       } catch (_) {}
+    }
+
+    if (room.gameState === 'playing') {
+      const oldId = userId
+        ? room.players.find(pid => room.userIds && room.userIds[pid] === userId)
+        : null;
+      if (!oldId) { socket.emit('join-error', { message: 'เกมเริ่มแล้ว' }); return; }
+      rebindPlayerSocket(room, oldId, socket.id, playerName, userId, avatarUrl, userRank);
     }
 
     if (!room.players.includes(socket.id)) {
@@ -1041,6 +1092,26 @@ io.on('connection', (socket) => {
 function handleLeave(socket, isDisconnect = false) {
   const room = rooms[socket.roomId];
   if (!room) return;
+
+  if (isDisconnect) {
+    room._disconnectTimers = room._disconnectTimers || {};
+    if (!room._disconnectTimers[socket.id]) {
+      room._disconnectTimers[socket.id] = setTimeout(() => {
+        delete room._disconnectTimers[socket.id];
+        const fakeSocket = { id: socket.id, roomId: socket.roomId, playerName: socket.playerName };
+        handleLeave(fakeSocket, false);
+      }, 20000);
+    }
+    io.to(socket.roomId).emit('player-disconnected', {
+      playerId: socket.id, playerName: socket.playerName
+    });
+    return;
+  }
+
+  if (room._disconnectTimers && room._disconnectTimers[socket.id]) {
+    clearTimeout(room._disconnectTimers[socket.id]);
+    delete room._disconnectTimers[socket.id];
+  }
 
   const wasCreator = socket.id === room.creator;
   if (wasCreator) socket.to(socket.roomId).emit('host-left-room', { message: 'เจ้าของห้องออกจากห้องแล้ว' });
