@@ -15,6 +15,21 @@ function setupSocketHandlers() {
     return;
   }
 
+  socket.on('connect', function() {
+    if (gs && gs.roomId && currentUser && currentUser.displayName) {
+      socket.emit('join-room', {
+        roomId: gs.roomId,
+        playerName: currentUser.displayName,
+        userId: currentUser.id,
+        avatarUrl: currentUser.avatarUrl || null
+      });
+    }
+  });
+
+  socket.on('disconnect', function() {
+    // no-op: server has a grace period; we re-join on connect
+  });
+
 socket.on('your-player-id', function(id) {
   gs.myId = id;
   updateLobbyPlayersList();

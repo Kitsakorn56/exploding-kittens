@@ -4,6 +4,8 @@
  */
 
 var _prevHandCount = 0;
+var _handInputBound = false;
+var _handLastPointerUpTs = 0;
 
 // ─── Card Tooltip ─────────────────────────────────────────────────────────────
 var _tooltipEl     = null;
@@ -157,7 +159,7 @@ function buildCardHTML(card, index, total) {
     ' style="z-index:' + (isSelected ? 60 : index + 1) + ';"' +
     ' data-card-id="' + card.id + '"' +
     ' data-card-type="' + card.type + '"' +
-    ' onclick="handleCardClick(event,' + card.id + ',\'' + card.type + '\')">' +
+    '>' +
     innerContent + '</div>';
 }
 
@@ -172,9 +174,37 @@ function handleCardClick(e, cardId, cardType) {
   toggleSelectCard(cardId, cardType);
 }
 
+function _handleHandCardInteraction(e) {
+  var cardEl = e.target && e.target.closest ? e.target.closest('.hand-card') : null;
+  if (!cardEl) return;
+
+  var idStr = cardEl.getAttribute('data-card-id');
+  var type = cardEl.getAttribute('data-card-type') || '';
+  var cardId = Number(idStr);
+  if (!Number.isFinite(cardId)) return;
+
+  handleCardClick(e, cardId, type);
+}
+
+function bindHandInput(container) {
+  if (_handInputBound || !container) return;
+  _handInputBound = true;
+
+  container.addEventListener('pointerup', function(e) {
+    _handLastPointerUpTs = Date.now();
+    _handleHandCardInteraction(e);
+  });
+
+  container.addEventListener('click', function(e) {
+    if (Date.now() - _handLastPointerUpTs < 650) return;
+    _handleHandCardInteraction(e);
+  });
+}
+
 function renderHand() {
   var container = document.getElementById('myHand');
   if (!container) return;
+  bindHandInput(container);
   if (gs.isSpectator) {
     container.innerHTML = '<div style="color:var(--text-3);font-style:italic;text-align:center;padding:32px 0;width:100%;">' +
       ICONS.spectator + ' ' + t('game.spectating') + '</div>';
